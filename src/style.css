@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: 'Fraunces', ui-serif, serif;
+}
+
+/* Visible keyboard focus everywhere, since color alone never carries state */
+:focus-visible {
+  outline: 2px solid #4a6b4d;
+  outline-offset: 2px;
+}
