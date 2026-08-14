@@ -50,6 +50,11 @@ const router = createRouter({
       name: 'discover',
       component: () => import('@/views/DiscoverView.vue'),
     },
+    {
+      path: '/contractors/:username',
+      name: 'contractor-profile',
+      component: () => import('@/views/PublicProfileView.vue'),
+    },
   ],
 })
 
