@@ -4,7 +4,17 @@ import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/profile' },
+    {
+      path: '/',
+      name: 'home',
+      component: () => import('@/views/DiscoverView.vue'),
+      beforeEnter: async () => {
+        const authStore = useAuthStore()
+        await authStore.whenReady()
+        if (authStore.isLoggedIn) return { name: 'profile' }
+        return true
+      },
+    },
     {
       path: '/login',
       name: 'login',
@@ -34,6 +44,11 @@ const router = createRouter({
       name: 'profile-edit',
       component: () => import('@/views/ProfileFormView.vue'),
       meta: { requiresAuth: true, requiresProfile: true },
+    },
+    {
+      path: '/contractors',
+      name: 'discover',
+      component: () => import('@/views/DiscoverView.vue'),
     },
   ],
 })
