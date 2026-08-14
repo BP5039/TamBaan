@@ -9,19 +9,19 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
-      meta: { guestOnly: true },
+      meta: { guestOnly: true, hideHeader: true },
     },
     {
       path: '/register',
       name: 'register',
       component: () => import('@/views/RegisterView.vue'),
-      meta: { guestOnly: true },
+      meta: { guestOnly: true, hideHeader: true },
     },
     {
       path: '/onboarding',
       name: 'onboarding',
       component: () => import('@/views/OnboardingWizard.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, hideHeader: true },
     },
     {
       path: '/profile',

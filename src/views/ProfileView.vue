@@ -6,6 +6,7 @@ import { usePortfolioStore } from '@/stores/portfolio'
 import { labelForCategory } from '@/constants/workCategories'
 import PortfolioItemCard from '@/components/profile/PortfolioItemCard.vue'
 import AddPortfolioModal from '@/components/profile/AddPortfolioModal.vue'
+import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 
@@ -17,8 +18,6 @@ const profile = computed(() => authStore.profile!)
 const isProfessional = computed(() => profile.value.role === 'professional')
 
 const showAddModal = ref(false)
-const uploadError = ref('')
-
 const uploading = ref(false)
 const modalUploadError = ref('')
 
@@ -63,36 +62,29 @@ async function handleDeleteItem(id: string) {
   const item = portfolioStore.items.find((i) => i.id === id)
   if (item) await portfolioStore.removeItem(authStore.user.uid, item)
 }
-
-async function logout() {
-  await authStore.logout()
-  router.push('/login')
-}
 </script>
 
 <template>
   <div v-if="profile" class="mx-auto max-w-4xl px-4 py-8">
-    <div class="mb-6 flex items-center justify-between">
-      <h1 class="text-xl font-semibold text-ink">TamBaan</h1>
-      <div class="flex gap-2">
-        <BaseButton variant="ghost" @click="router.push('/profile/edit')">Edit profile</BaseButton>
-        <BaseButton variant="ghost" @click="logout">Log out</BaseButton>
-      </div>
+    <div class="mb-4 flex justify-end">
+      <BaseButton variant="ghost" @click="router.push('/profile/edit')">Edit profile</BaseButton>
     </div>
 
     <div class="grid grid-cols-1 gap-6 rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]">
-      <!-- Sidebar -->
       <div class="flex flex-col items-center text-center md:items-start md:text-left">
         <div class="mb-3 h-20 w-20 overflow-hidden rounded-full bg-cream">
-          <img
-            v-if="profile.photoURL"
-            :src="profile.photoURL"
-            alt=""
-            class="h-full w-full object-cover"
-          />
+          <img v-if="profile.photoURL" :src="profile.photoURL" alt="" class="h-full w-full object-cover" />
         </div>
         <p class="font-medium text-ink">{{ profile.firstName }} {{ profile.lastName }}</p>
         <p class="text-xs text-muted">@{{ profile.username }}</p>
+
+        <StarRating
+          v-if="isProfessional"
+          :rating="profile.rating ?? null"
+          :count="profile.ratingCount ?? 0"
+          class="mt-2 justify-center md:justify-start"
+        />
+
         <p class="mt-2 text-xs text-muted">{{ profile.phone }}</p>
         <p v-if="profile.lineId" class="text-xs text-muted">LINE: {{ profile.lineId }}</p>
         <p v-if="profile.facebookId" class="text-xs text-muted">FB: {{ profile.facebookId }}</p>
@@ -111,7 +103,6 @@ async function logout() {
 
       <div class="hidden bg-cream md:block" />
 
-      <!-- Main -->
       <div>
         <div class="mb-4 flex items-center justify-between">
           <h2 class="text-sm font-medium text-muted">
@@ -124,10 +115,10 @@ async function logout() {
         </div>
 
         <AlertBanner
-          v-if="uploadError"
+          v-if="modalUploadError && !showAddModal"
           variant="error"
           title="Upload failed"
-          :message="uploadError"
+          :message="modalUploadError"
           class="mb-4"
         />
 
