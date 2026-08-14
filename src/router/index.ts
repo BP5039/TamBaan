@@ -55,6 +55,11 @@ const router = createRouter({
       name: 'contractor-profile',
       component: () => import('@/views/PublicProfileView.vue'),
     },
+    {
+      path: '/about',
+      name: 'about',
+      component: () => import('@/views/LandingView.vue'),
+    },
   ],
 })
 
