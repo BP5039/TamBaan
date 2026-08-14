@@ -71,9 +71,9 @@ watch([selectedCategories, selectedProvince], runSearch, { immediate: true })
 
       <p v-if="discoveryStore.loading" class="py-10 text-center text-sm text-muted">Searching…</p>
 
-      <div v-else-if="discoveryStore.results.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <ContractorCard v-for="profile in discoveryStore.results" :key="profile.uid" :profile="profile" />
-      </div>
+        <div v-else-if="discoveryStore.filteredResults.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ContractorCard v-for="profile in discoveryStore.filteredResults" :key="profile.uid" :profile="profile" />
+        </div>
 
       <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">
         No contractors match those filters yet.

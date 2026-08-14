@@ -1,13 +1,24 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useDiscoveryStore } from '@/stores/discovery'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
+const discoveryStore = useDiscoveryStore()
 
 async function logout() {
   await authStore.logout()
   router.push('/')
+}
+
+function onSearchInput(e: Event) {
+  const value = (e.target as HTMLInputElement).value
+  discoveryStore.setSearchQuery(value)
+  if (route.name !== 'discover' && route.name !== 'home') {
+    router.push('/contractors')
+  }
 }
 </script>
 
@@ -19,15 +30,25 @@ async function logout() {
       </router-link>
 
       <div class="relative max-w-md flex-1">
+        <svg
+          class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2"
+          :class="discoveryStore.searchQuery ? 'text-primary' : 'text-muted'"
+          viewBox="0 0 20 20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        >
+          <circle cx="9" cy="9" r="6.5" />
+          <path d="M14 14l4.5 4.5" stroke-linecap="round" />
+        </svg>
         <input
           type="text"
-          disabled
-          placeholder="Search by name — coming soon"
-          class="w-full cursor-not-allowed rounded-lg border border-cream bg-cream/30 px-3 py-2 text-sm text-muted"
+          placeholder="Search by name"
+          :value="discoveryStore.searchQuery"
+          class="w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm text-ink focus:outline-none"
+          :class="discoveryStore.searchQuery ? 'border-primary' : 'border-cream'"
+          @input="onSearchInput"
         />
-        <span class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-pending-bg px-2 py-0.5 text-[10px] font-medium text-pending-text">
-          Coming soon
-        </span>
       </div>
 
       <nav class="flex flex-shrink-0 items-center gap-4">
