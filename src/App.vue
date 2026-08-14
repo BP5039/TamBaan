@@ -4,6 +4,7 @@ import { useRoute, RouterView } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import AuthModal from '@/components/auth/AuthModal.vue'
+import OnboardingModal from '@/components/auth/OnboardingModal.vue'
 
 const route = useRoute()
 const showHeader = computed(() => !route.meta.hideHeader)
@@ -17,5 +18,6 @@ const showHeader = computed(() => !route.meta.hideHeader)
     </div>
     <AppFooter v-if="showHeader" />
     <AuthModal />
+    <OnboardingModal />
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAuthModalStore } from '@/stores/authModal'
+import { useOnboardingModalStore } from '@/stores/onboardingModal'
 import LoginForm from '@/components/auth/LoginForm.vue'
 import RegisterForm from '@/components/auth/RegisterForm.vue'
 
@@ -9,13 +10,14 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const authModalStore = useAuthModalStore()
+const onboardingModalStore = useOnboardingModalStore()
 
 function onSuccess() {
   const needsOnboarding = !authStore.hasProfile
   authModalStore.close()
 
   if (needsOnboarding) {
-    router.push('/onboarding')
+    onboardingModalStore.open()
   } else if (route.name === 'home') {
     router.push('/profile')
   }
