@@ -2,11 +2,13 @@
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDiscoveryStore } from '@/stores/discovery'
+import { useAuthModalStore } from '@/stores/authModal'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const discoveryStore = useDiscoveryStore()
+const authModalStore = useAuthModalStore()
 
 async function logout() {
   await authStore.logout()
@@ -63,9 +65,14 @@ function onSearchInput(e: Event) {
             Log out
           </button>
         </template>
-        <router-link v-else to="/login" class="text-sm font-medium text-muted hover:text-ink">
+        <button
+          v-else
+          type="button"
+          class="text-sm font-medium text-muted hover:text-ink"
+          @click="authModalStore.openLogin()"
+        >
           Log in
-        </router-link>
+        </button>
       </nav>
     </div>
   </header>

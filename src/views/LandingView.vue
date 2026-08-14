@@ -1,17 +1,12 @@
 <script setup lang="ts">
+import { useAuthModalStore } from '@/stores/authModal'
+
+const authModalStore = useAuthModalStore()
+
 const steps = [
-  {
-    title: 'Discover contractors',
-    description: 'Browse real portfolios by trade and province',
-  },
-  {
-    title: 'Invite them to your project',
-    description: 'Create a renovation project and bring them on board',
-  },
-  {
-    title: 'Track real progress',
-    description: 'Dated photo updates you confirm as work happens',
-  },
+  { title: 'Discover contractors', description: 'Browse real portfolios by trade and province' },
+  { title: 'Invite them to your project', description: 'Create a renovation project and bring them on board' },
+  { title: 'Track real progress', description: 'Dated photo updates you confirm as work happens' },
 ]
 </script>
 
@@ -26,12 +21,13 @@ const steps = [
         progress, no more guessing.
       </p>
       <div class="flex flex-wrap justify-center gap-2.5">
-        <router-link
-          to="/register"
+        <button
+          type="button"
           class="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+          @click="authModalStore.openRegister()"
         >
           Get started
-        </router-link>
+        </button>
         <router-link
           to="/contractors"
           class="rounded-lg border border-cream bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-cream/40"
@@ -47,9 +43,7 @@ const steps = [
       </p>
       <div class="mx-auto grid max-w-xl grid-cols-1 gap-6 sm:grid-cols-3">
         <div v-for="(step, i) in steps" :key="step.title" class="text-center">
-          <div
-            class="mx-auto mb-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white"
-          >
+          <div class="mx-auto mb-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
             {{ i + 1 }}
           </div>
           <p class="mb-1 text-sm font-semibold text-ink">{{ step.title }}</p>
