@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAuthModalStore } from '@/stores/authModal'
 import LoginForm from '@/components/auth/LoginForm.vue'
 import RegisterForm from '@/components/auth/RegisterForm.vue'
 
+const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const authModalStore = useAuthModalStore()
@@ -12,10 +13,13 @@ const authModalStore = useAuthModalStore()
 function onSuccess() {
   const needsOnboarding = !authStore.hasProfile
   authModalStore.close()
+
   if (needsOnboarding) {
     router.push('/onboarding')
+  } else if (route.name === 'home') {
+    router.push('/profile')
   }
-  // Otherwise: close and stay exactly where the person already was.
+  // Otherwise: stay exactly where the person already was.
 }
 </script>
 
