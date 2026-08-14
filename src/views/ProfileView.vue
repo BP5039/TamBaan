@@ -66,8 +66,11 @@ async function handleDeleteItem(id: string) {
 
 <template>
   <div v-if="profile" class="mx-auto max-w-4xl px-4 py-8">
-    <div class="mb-4 flex justify-end">
-      <BaseButton variant="ghost" @click="router.push('/profile/edit')">Edit profile</BaseButton>
+    <div class="mb-4 flex justify-end gap-2">
+      <BaseButton variant="outline" @click="router.push(`/contractors/${profile.username}`)">
+        Preview public profile
+      </BaseButton>
+      <BaseButton variant="outline" @click="router.push('/profile/edit')">Edit profile</BaseButton>
     </div>
 
     <div class="grid grid-cols-1 gap-6 rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]">

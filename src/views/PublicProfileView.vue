@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { usePublicProfileStore } from '@/stores/publicProfile'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { labelForCategory } from '@/constants/workCategories'
@@ -10,11 +11,15 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const publicProfileStore = usePublicProfileStore()
 const portfolioStore = usePortfolioStore()
 
 const username = computed(() => route.params.username as string)
 const isProfessional = computed(() => publicProfileStore.profile?.role === 'professional')
+const isOwnProfile = computed(
+  () => authStore.isLoggedIn && authStore.profile?.username === username.value,
+)
 
 async function load() {
   await publicProfileStore.loadByUsername(username.value)
@@ -42,69 +47,95 @@ watch(username, load)
       This profile doesn't exist.
     </p>
 
-    <div
-      v-else-if="publicProfileStore.profile"
-      class="grid grid-cols-1 gap-6 rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]"
-    >
-      <div class="flex flex-col items-center text-center md:items-start md:text-left">
-        <div class="mb-3 h-20 w-20 overflow-hidden rounded-full bg-cream">
-          <img
-            v-if="publicProfileStore.profile.photoURL"
-            :src="publicProfileStore.profile.photoURL"
-            alt=""
-            class="h-full w-full object-cover"
+    <template v-else-if="publicProfileStore.profile">
+      <div
+        v-if="isOwnProfile"
+        class="mb-4 flex items-center gap-2 rounded-lg border border-pending-border bg-pending-bg px-3 py-2.5"
+      >
+        <svg class="h-4 w-4 flex-shrink-0 text-pending" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4c0 .3.1.5.3.7l3 3a1 1 0 001.4-1.4L11 9.6V6z"
+            clip-rule="evenodd"
           />
-        </div>
-        <p class="font-medium text-ink">
-          {{ publicProfileStore.profile.firstName }} {{ publicProfileStore.profile.lastName }}
+        </svg>
+        <p class="text-xs text-pending-text">
+          You're viewing your own profile — this is what everyone else sees.
+          <router-link to="/profile" class="font-medium underline">Go to your profile</router-link>
         </p>
-        <p class="text-xs text-muted">@{{ publicProfileStore.profile.username }}</p>
-
-        <StarRating
-          v-if="isProfessional"
-          :rating="publicProfileStore.profile.rating ?? null"
-          :count="publicProfileStore.profile.ratingCount ?? 0"
-          class="mt-2 justify-center md:justify-start"
-        />
-
-        <p class="mt-2 text-xs text-muted">{{ publicProfileStore.profile.province }}</p>
-
-        <div v-if="isProfessional && publicProfileStore.profile.workCategories.length" class="mt-3 flex flex-wrap gap-1.5">
-          <span
-            v-for="cat in publicProfileStore.profile.workCategories"
-            :key="cat"
-            class="rounded-full bg-cream px-2.5 py-1 text-[11px] font-medium text-ink"
-          >
-            {{ labelForCategory(cat) }}
-          </span>
-        </div>
       </div>
 
-      <div class="hidden bg-cream md:block" />
+      <div class="grid grid-cols-1 gap-6 rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]">
+        <div class="flex flex-col items-center text-center md:items-start md:text-left">
+          <div class="mb-3 h-20 w-20 overflow-hidden rounded-full bg-cream">
+            <img
+              v-if="publicProfileStore.profile.photoURL"
+              :src="publicProfileStore.profile.photoURL"
+              alt=""
+              class="h-full w-full object-cover"
+            />
+          </div>
+          <p class="font-medium text-ink">
+            {{ publicProfileStore.profile.firstName }} {{ publicProfileStore.profile.lastName }}
+          </p>
+          <p class="text-xs text-muted">@{{ publicProfileStore.profile.username }}</p>
 
-      <div>
-        <h2 class="mb-4 text-sm font-medium text-muted">
-          {{ isProfessional ? 'Previous work' : 'Homeowner' }}
-        </h2>
+          <StarRating
+            v-if="isProfessional"
+            :rating="publicProfileStore.profile.rating ?? null"
+            :count="publicProfileStore.profile.ratingCount ?? 0"
+            class="mt-2 justify-center md:justify-start"
+          />
 
-        <template v-if="isProfessional">
-          <div v-if="portfolioStore.groupedByYear.length">
-            <div v-for="group in portfolioStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
-              <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
-              <div class="grid grid-cols-2 gap-4">
-                <PortfolioItemCard v-for="item in group.items" :key="item.id" :item="item" />
+          <p class="mt-2 text-xs text-muted">{{ publicProfileStore.profile.phone }}</p>
+          <p v-if="publicProfileStore.profile.lineId" class="text-xs text-muted">
+            LINE: {{ publicProfileStore.profile.lineId }}
+          </p>
+          <p v-if="publicProfileStore.profile.facebookId" class="text-xs text-muted">
+            FB: {{ publicProfileStore.profile.facebookId }}
+          </p>
+          <p class="text-xs text-muted">{{ publicProfileStore.profile.province }}</p>
+
+          <div
+            v-if="isProfessional && publicProfileStore.profile.workCategories.length"
+            class="mt-3 flex flex-wrap gap-1.5"
+          >
+            <span
+              v-for="cat in publicProfileStore.profile.workCategories"
+              :key="cat"
+              class="rounded-full bg-cream px-2.5 py-1 text-[11px] font-medium text-ink"
+            >
+              {{ labelForCategory(cat) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="hidden bg-cream md:block" />
+
+        <div>
+          <h2 class="mb-4 text-sm font-medium text-muted">
+            {{ isProfessional ? 'Previous work' : 'Homeowner' }}
+          </h2>
+
+          <template v-if="isProfessional">
+            <div v-if="portfolioStore.groupedByYear.length">
+              <div v-for="group in portfolioStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
+                <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
+                <div class="grid grid-cols-2 gap-4">
+                  <PortfolioItemCard v-for="item in group.items" :key="item.id" :item="item" />
+                </div>
               </div>
             </div>
-          </div>
-          <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">
-            No work uploaded yet.
-          </p>
-        </template>
+            <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">
+              No work uploaded yet.
+            </p>
+          </template>
 
-        <p v-else class="text-sm text-muted">
-          This is a homeowner profile — nothing to show here yet.
-        </p>
+          <p v-else class="text-sm text-muted">
+            This is a homeowner profile — nothing to show here yet.
+          </p>
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
