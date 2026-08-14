@@ -7,7 +7,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/DiscoverView.vue'),
+      component: () => import('@/views/LandingView.vue'),
       beforeEnter: async () => {
         const authStore = useAuthStore()
         await authStore.whenReady()
