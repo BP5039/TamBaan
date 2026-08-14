@@ -26,6 +26,8 @@ export interface UserProfile {
   role: UserRole
   workCategories: WorkCategoryValue[]
   photoURL: string | null
+  rating?: number | null
+  ratingCount?: number
   createdAt: number
   updatedAt: number
 }
