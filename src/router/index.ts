@@ -46,13 +46,13 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresProfile: true },
     },
     {
-      path: '/contractors',
+      path: '/discover',
       name: 'discover',
       component: () => import('@/views/DiscoverView.vue'),
     },
     {
-      path: '/contractors/:username',
-      name: 'contractor-profile',
+      path: '/discover/:username',
+      name: 'professional-profile',
       component: () => import('@/views/PublicProfileView.vue'),
     },
     {

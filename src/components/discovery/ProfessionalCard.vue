@@ -9,7 +9,7 @@ const router = useRouter()
 const MAX_BADGES = 3
 
 function openProfile() {
-  router.push(`/contractors/${props.profile.username}`)
+  router.push(`/discover/${props.profile.username}`)
 }
 </script>
 
@@ -35,13 +35,13 @@ function openProfile() {
       <span
         v-for="cat in profile.workCategories.slice(0, MAX_BADGES)"
         :key="cat"
-        class="rounded-full bg-cream px-2 py-0.5 text-[10px] font-medium text-ink"
+        class="rounded-lg bg-cream px-2 py-0.5 text-[10px] font-medium text-ink"
       >
         {{ labelForCategory(cat) }}
       </span>
       <span
         v-if="profile.workCategories.length > MAX_BADGES"
-        class="rounded-full bg-cream px-2 py-0.5 text-[10px] font-medium text-muted"
+        class="rounded-lg bg-cream px-2 py-0.5 text-[10px] font-medium text-muted"
       >
         +{{ profile.workCategories.length - MAX_BADGES }}
       </span>
