@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useAuthModalStore } from '@/stores/authModal'
+import { useOnboardingModalStore } from '@/stores/onboardingModal'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,24 +16,6 @@ const router = createRouter({
         if (authStore.isLoggedIn) return { name: 'profile' }
         return true
       },
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/views/LoginView.vue'),
-      meta: { guestOnly: true, hideHeader: true },
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: () => import('@/views/RegisterView.vue'),
-      meta: { guestOnly: true, hideHeader: true },
-    },
-    {
-      path: '/onboarding',
-      name: 'onboarding',
-      component: () => import('@/views/OnboardingView.vue'),
-      meta: { requiresAuth: true, hideHeader: true },
     },
     {
       path: '/profile',
@@ -60,22 +44,30 @@ const router = createRouter({
       name: 'about',
       component: () => import('@/views/LandingView.vue'),
     },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: { name: 'discover' },
+    },
   ],
 })
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+  const authModalStore = useAuthModalStore()
+  const onboardingModalStore = useOnboardingModalStore()
   await authStore.whenReady()
 
   const isLoggedIn = authStore.isLoggedIn
   const hasProfile = authStore.hasProfile
 
-  if (to.meta.requiresAuth && !isLoggedIn) return { name: 'login' }
-  if (to.meta.guestOnly && isLoggedIn) return { name: 'profile' }
-  if (to.meta.requiresAuth && isLoggedIn && !hasProfile && to.name !== 'onboarding') {
-    return { name: 'onboarding' }
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    authModalStore.openLogin()
+    return { name: 'discover' }
   }
-  if (to.name === 'onboarding' && hasProfile) return { name: 'profile' }
+  if (to.meta.requiresAuth && isLoggedIn && !hasProfile) {
+    onboardingModalStore.open()
+    return { name: 'discover' }
+  }
   return true
 })
 
