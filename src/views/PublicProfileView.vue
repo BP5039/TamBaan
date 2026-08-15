@@ -34,7 +34,7 @@ watch(username, load)
 
 <template>
   <div class="mx-auto max-w-4xl px-4 py-8">
-    <BaseButton variant="ghost" class="mb-4" @click="router.push('/contractors')">
+    <BaseButton variant="ghost" class="mb-4" @click="router.push('/discover')">
       ← Back to search
     </BaseButton>
 
@@ -66,7 +66,7 @@ watch(username, load)
       </div>
 
       <div class="grid grid-cols-1 gap-6 rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]">
-        <div class="flex flex-col items-center text-center md:items-start md:text-left">
+        <div class="flex flex-col self-start text-center md:sticky md:top-16 md:items-start md:text-left">
           <div class="mb-3 h-20 w-20 overflow-hidden rounded-full bg-cream">
             <img
               v-if="publicProfileStore.profile.photoURL"
@@ -103,7 +103,7 @@ watch(username, load)
             <span
               v-for="cat in publicProfileStore.profile.workCategories"
               :key="cat"
-              class="rounded-full bg-cream px-2.5 py-1 text-[11px] font-medium text-ink"
+              class="rounded-lg bg-cream px-2.5 py-1 text-[11px] font-medium text-ink"
             >
               {{ labelForCategory(cat) }}
             </span>

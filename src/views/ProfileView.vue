@@ -34,6 +34,7 @@ function openAddModal() {
 
 async function handleSavePortfolioItem(payload: {
   files: File[]
+  title: string
   description: string
   year: number
   location: string
@@ -45,6 +46,7 @@ async function handleSavePortfolioItem(payload: {
     await portfolioStore.addItem(
       authStore.user.uid,
       payload.files,
+      payload.title,
       payload.description,
       payload.year,
       payload.location,
@@ -62,19 +64,18 @@ async function handleDeleteItem(id: string) {
   const item = portfolioStore.items.find((i) => i.id === id)
   if (item) await portfolioStore.removeItem(authStore.user.uid, item)
 }
+
+async function logout() {
+  await authStore.logout()
+  router.push('/')
+}
 </script>
 
 <template>
   <div v-if="profile" class="mx-auto max-w-4xl px-4 py-8">
-    <div class="mb-4 flex justify-end gap-2">
-      <BaseButton variant="outline" @click="router.push(`/contractors/${profile.username}`)">
-        Preview public profile
-      </BaseButton>
-      <BaseButton variant="outline" @click="router.push('/profile/edit')">Edit profile</BaseButton>
-    </div>
-
     <div class="grid grid-cols-1 gap-6 rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]">
-      <div class="flex flex-col items-center text-center md:items-start md:text-left">
+      <!-- Sidebar: sticky so it stays visible while portfolio scrolls -->
+      <div class="flex flex-col self-start text-center md:sticky md:top-16 md:items-start md:text-left">
         <div class="mb-3 h-20 w-20 overflow-hidden rounded-full bg-cream">
           <img v-if="profile.photoURL" :src="profile.photoURL" alt="" class="h-full w-full object-cover" />
         </div>
@@ -97,15 +98,32 @@ async function handleDeleteItem(id: string) {
           <span
             v-for="cat in profile.workCategories"
             :key="cat"
-            class="rounded-full bg-cream px-2.5 py-1 text-[11px] font-medium text-ink"
+            class="rounded-lg bg-cream px-2.5 py-1 text-[11px] font-medium text-ink"
           >
             {{ labelForCategory(cat) }}
           </span>
+        </div>
+
+        <div class="mt-6 flex w-full flex-col gap-2">
+          <BaseButton variant="outline" full-width @click="router.push(`/discover/${profile.username}`)">
+            Preview public profile
+          </BaseButton>
+          <BaseButton variant="outline" full-width @click="router.push('/profile/edit')">
+            Edit profile
+          </BaseButton>
+          <button
+            type="button"
+            class="w-full rounded-lg border border-error-border px-4 py-2.5 text-sm font-medium text-error hover:bg-error-bg"
+            @click="logout"
+          >
+            Log out
+          </button>
         </div>
       </div>
 
       <div class="hidden bg-cream md:block" />
 
+      <!-- Portfolio / projects column -->
       <div>
         <div class="mb-4 flex items-center justify-between">
           <h2 class="text-sm font-medium text-muted">

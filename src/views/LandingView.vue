@@ -28,12 +28,12 @@ const steps = [
         >
           Get started
         </button>
-        <router-link
-          to="/contractors"
-          class="rounded-lg border border-cream bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-cream/40"
-        >
-          Find a contractor
-        </router-link>
+      <router-link
+        to="/discover"
+        class="rounded-lg border border-cream bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-cream/40"
+      >
+        Find a professional
+      </router-link>
       </div>
     </div>
 
