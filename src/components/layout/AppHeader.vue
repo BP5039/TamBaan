@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDiscoveryStore } from '@/stores/discovery'
@@ -11,46 +11,20 @@ const authStore = useAuthStore()
 const discoveryStore = useDiscoveryStore()
 const authModalStore = useAuthModalStore()
 
-const discoverActiveNames = ['discover', 'professional-profile']
-
 function isActive(names: string[]) {
   return typeof route.name === 'string' && names.includes(route.name)
 }
 
-const isOnDiscover = computed(() => isActive(discoverActiveNames))
-
-// Local buffer used only when we're NOT on the discover page — typing here
-// never navigates or filters anything until the search is actually submitted.
-const localQuery = ref('')
-
-// When arriving at discover (via nav, not via search), show whatever query
-// is already active there, rather than a stale local buffer.
-watch(isOnDiscover, (onDiscover) => {
-  if (onDiscover) localQuery.value = discoveryStore.searchQuery
-})
-
-const displayValue = computed(() =>
-  isOnDiscover.value ? discoveryStore.searchQuery : localQuery.value,
-)
-
-function onSearchInput(e: Event) {
-  const value = (e.target as HTMLInputElement).value
-  if (isOnDiscover.value) {
-    // Already browsing results — live substring narrowing is safe here.
-    discoveryStore.setSearchQuery(value)
-  } else {
-    // Anywhere else: just buffer the text, don't touch the route or the store.
-    localQuery.value = value
-  }
-}
+// Purely local — never touches the store or the route until submit.
+const searchInput = ref('')
 
 function onSearchSubmit(e: Event) {
   const value = (e.target as HTMLFormElement).search.value as string
-  if (!isOnDiscover.value) {
+  if (!isActive(['discover', 'professional-profile'])) {
     router.push('/discover')
   }
   discoveryStore.submitSearch(value)
-  localQuery.value = ''
+  searchInput.value = ''
 }
 </script>
 
@@ -64,8 +38,7 @@ function onSearchSubmit(e: Event) {
       <form class="flex flex-1 justify-center" @submit.prevent="onSearchSubmit">
         <div class="flex w-full max-w-xs items-center gap-1 rounded-lg border border-cream bg-white p-1">
           <svg
-            class="ml-1.5 h-3.5 w-3.5 flex-shrink-0"
-            :class="displayValue ? 'text-primary' : 'text-muted'"
+            class="ml-1.5 h-3.5 w-3.5 flex-shrink-0 text-muted"
             viewBox="0 0 20 20"
             fill="none"
             stroke="currentColor"
@@ -75,12 +48,11 @@ function onSearchSubmit(e: Event) {
             <path d="M14 14l4.5 4.5" stroke-linecap="round" />
           </svg>
           <input
+            v-model="searchInput"
             name="search"
             type="text"
             placeholder="Search"
-            :value="displayValue"
             class="min-w-0 flex-1 bg-transparent px-1 py-1 text-sm text-ink focus:outline-none"
-            @input="onSearchInput"
           />
           <button
             type="submit"
@@ -111,7 +83,7 @@ function onSearchSubmit(e: Event) {
           to="/discover"
           class="text-sm font-medium pb-0.5"
           :class="
-            isActive(discoverActiveNames)
+            isActive(['discover', 'professional-profile'])
               ? 'border-b-2 border-primary text-primary font-semibold'
               : 'text-muted hover:text-ink'
           "

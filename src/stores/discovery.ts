@@ -36,10 +36,7 @@ export const useDiscoveryStore = defineStore('discovery', {
   },
 
   actions: {
-    setSearchQuery(value: string) {
-      this.searchQuery = value
-    },
-
+    /** Manual filter controls stay independent/toggleable — only the search bar resets things. */
     toggleCategory(value: WorkCategoryValue) {
       const set = new Set(this.selectedCategories)
       set.has(value) ? set.delete(value) : set.add(value)
@@ -53,28 +50,20 @@ export const useDiscoveryStore = defineStore('discovery', {
     },
 
     /**
-     * On submit: parse free text for category/province matches and apply
-     * them as real filters. If anything was found, the raw text is cleared
-     * afterward — otherwise it would also be required as a literal
-     * substring match on name/username/portfolio text, which cancels out
-     * the filter that was just correctly applied.
+     * Every search bar submission is a fresh, standalone query — it fully
+     * replaces whatever filters were previously active (manual or from an
+     * earlier search), rather than adding to them. If a category/province
+     * was detected, the raw text is cleared so it doesn't also get required
+     * as a literal substring match on top of the filter that was just applied.
      */
     submitSearch(rawQuery: string) {
       const parsed = parseSearchQuery(rawQuery)
-      let filterApplied = false
+      const filterApplied = parsed.categories.length > 0 || !!parsed.province
 
-      if (parsed.categories.length > 0) {
-        const set = new Set(this.selectedCategories)
-        parsed.categories.forEach((c) => set.add(c))
-        this.selectedCategories = Array.from(set)
-        filterApplied = true
-      }
-      if (parsed.province) {
-        this.selectedProvince = parsed.province
-        filterApplied = true
-      }
-
+      this.selectedCategories = parsed.categories
+      this.selectedProvince = parsed.province
       this.searchQuery = filterApplied ? '' : rawQuery
+
       this.runSearch()
     },
 
