@@ -2,10 +2,12 @@
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDiscoveryStore } from '@/stores/discovery'
+import { useAuthModalStore } from '@/stores/authModal'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const authModalStore = useAuthModalStore()
 const discoveryStore = useDiscoveryStore()
 
 const discoverActiveNames = ['discover', 'professional-profile']
@@ -112,7 +114,7 @@ function onSearchSubmit(e: Event) {
           v-else
           type="button"
           class="rounded-lg bg-cream px-3 py-1.5 text-sm font-semibold text-ink hover:bg-cream/70"
-          @click="router.push('/login')"
+          @click="authModalStore.openLogin()"
         >
           Log in
         </button>
