@@ -50,6 +50,7 @@ function onSearchSubmit(e: Event) {
     router.push('/discover')
   }
   discoveryStore.submitSearch(value)
+  localQuery.value = ''
 }
 </script>
 
