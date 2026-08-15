@@ -70,6 +70,7 @@ function next() {
       </template>
     </div>
     <div class="p-3">
+      <p class="mb-0.5 text-xs font-semibold text-ink">{{ item.title }}</p>
       <p class="text-[11px] text-muted">{{ item.location }}</p>
       <p class="line-clamp-3 text-xs text-ink/90">{{ item.description }}</p>
       <button
@@ -81,12 +82,5 @@ function next() {
         Remove
       </button>
     </div>
-
-    <PortfolioLightbox
-      v-if="lightboxOpen"
-      :images="item.images"
-      :start-index="index"
-      @close="lightboxOpen = false"
-    />
   </div>
 </template>

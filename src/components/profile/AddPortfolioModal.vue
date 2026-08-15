@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
@@ -20,7 +21,15 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  save: [payload: { files: File[]; description: string; year: number; location: string }]
+  save: [
+    payload: {
+      files: File[]
+      title: string
+      description: string
+      year: number
+      location: string
+    },
+  ]
 }>()
 
 const MAX_IMAGES = 5
@@ -28,6 +37,7 @@ const YEAR_OPTIONS = getYearOptions()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const slots = ref<{ file: File; previewUrl: string }[]>([])
+const title = ref('')
 const description = ref('')
 const year = ref(String(new Date().getFullYear()))
 const location = ref('')
@@ -70,6 +80,10 @@ function submit() {
     validationError.value = 'Add at least one photo of the finished work.'
     return
   }
+  if (!title.value.trim()) {
+    validationError.value = 'Give this work a short title.'
+    return
+  }
   if (!description.value.trim()) {
     validationError.value = 'Add a short description of the work.'
     return
@@ -81,6 +95,7 @@ function submit() {
 
   emit('save', {
     files: slots.value.map((s) => s.file),
+    title: title.value.trim(),
     description: description.value.trim(),
     year: Number(year.value),
     location: location.value,
@@ -121,6 +136,7 @@ function submit() {
       />
 
       <fieldset :disabled="saving" class="border-0 p-0">
+        <!-- 1. Upload -->
         <div class="mb-1 grid grid-cols-5 gap-1.5">
           <div
             v-for="(slot, i) in slots"
@@ -160,11 +176,16 @@ function submit() {
           @change="onFilesChange"
         />
 
-        <div class="mb-4 grid grid-cols-2 gap-3">
-          <BaseSelect v-model="year" label="Year" :options="YEAR_OPTIONS" required />
-          <BaseSelect v-model="location" label="Location" :options="THAI_PROVINCES" required />
-        </div>
+        <!-- 2. Title -->
+        <BaseInput
+          v-model="title"
+          label="Title"
+          placeholder="e.g. ABCD Villa — pipe repiping"
+          required
+          class="mb-4"
+        />
 
+        <!-- 3. Description -->
         <BaseTextarea
           v-model="description"
           label="Description"
@@ -172,8 +193,14 @@ function submit() {
           :maxlength="200"
           :rows="3"
           required
-          class="mb-5"
+          class="mb-4"
         />
+
+        <!-- 4 & 5. Year and location -->
+        <div class="mb-5 grid grid-cols-2 gap-3">
+          <BaseSelect v-model="year" label="Year" :options="YEAR_OPTIONS" required />
+          <BaseSelect v-model="location" label="Location" :options="THAI_PROVINCES" required />
+        </div>
 
         <div class="flex gap-2">
           <BaseButton variant="outline" full-width @click="$emit('close')">Cancel</BaseButton>

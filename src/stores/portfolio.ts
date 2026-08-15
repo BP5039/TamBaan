@@ -7,6 +7,7 @@ import {
   getDocs,
   orderBy,
   query,
+  updateDoc,
 } from 'firebase/firestore'
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/firebase/config'
@@ -28,6 +29,14 @@ function normalizeImages(data: Record<string, unknown>): PortfolioImage[] {
     return [{ thumb: data.imageURL, full: data.imageURL }]
   }
   return []
+}
+
+function normalizeTitle(data: Record<string, unknown>): string {
+  if (typeof data.title === 'string' && data.title.trim()) return data.title
+  if (typeof data.description === 'string' && data.description.trim()) {
+    return data.description.slice(0, 40)
+  }
+  return 'Untitled work'
 }
 
 async function uploadOneImage(uid: string, file: File, index: number): Promise<PortfolioImage> {
@@ -54,6 +63,18 @@ async function uploadOneImage(uid: string, file: File, index: number): Promise<P
     getDownloadURL(thumbRef),
   ])
   return { full, thumb }
+}
+
+async function syncSearchText(uid: string, items: PortfolioItem[]) {
+  const text = items
+    .map((i) => `${i.title} ${i.description} ${i.location}`)
+    .join(' ')
+    .toLowerCase()
+  try {
+    await updateDoc(doc(db, 'users', uid), { portfolioSearchText: text })
+  } catch (err) {
+    console.error('Failed to sync portfolio search text:', err)
+  }
 }
 
 export const usePortfolioStore = defineStore('portfolio', {
@@ -88,6 +109,7 @@ export const usePortfolioStore = defineStore('portfolio', {
           const data = d.data() as Record<string, unknown>
           return {
             id: d.id,
+            title: normalizeTitle(data),
             images: normalizeImages(data),
             description: typeof data.description === 'string' ? data.description : '',
             year:
@@ -107,6 +129,7 @@ export const usePortfolioStore = defineStore('portfolio', {
     async addItem(
       uid: string,
       files: File[],
+      title: string,
       description: string,
       year: number,
       location: string,
@@ -114,6 +137,7 @@ export const usePortfolioStore = defineStore('portfolio', {
       const images = await Promise.all(files.map((f, i) => uploadOneImage(uid, f, i)))
 
       const payload = {
+        title,
         images,
         description,
         year,
@@ -124,6 +148,7 @@ export const usePortfolioStore = defineStore('portfolio', {
 
       const docRef = await addDoc(collection(db, 'users', uid, 'portfolio'), payload)
       this.items.unshift({ id: docRef.id, ...payload })
+      await syncSearchText(uid, this.items)
     },
 
     async removeItem(uid: string, item: PortfolioItem) {
@@ -142,6 +167,7 @@ export const usePortfolioStore = defineStore('portfolio', {
         }
       }
       this.items = this.items.filter((i) => i.id !== item.id)
+      await syncSearchText(uid, this.items)
     },
   },
 })

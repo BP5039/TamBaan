@@ -28,11 +28,11 @@ export interface UserProfile {
   photoURL: string | null
   rating?: number | null
   ratingCount?: number
+  portfolioSearchText?: string
   createdAt: number
   updatedAt: number
 }
 
-// Fields collected on the profile creation / edit form.
 export type ProfileFormData = Omit<UserProfile, 'uid' | 'createdAt' | 'updatedAt' | 'photoURL'>
 
 export interface PortfolioImage {
@@ -42,6 +42,7 @@ export interface PortfolioImage {
 
 export interface PortfolioItem {
   id: string
+  title: string
   images: PortfolioImage[]
   description: string
   year: number
