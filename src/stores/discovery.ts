@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { collection, getDocs, query as firestoreQuery, where } from 'firebase/firestore'
 import { db } from '@/firebase/config'
+import { parseSearchQuery } from '@/utils/searchParse'
 import type { UserProfile, WorkCategoryValue } from '@/types'
 
 interface DiscoveryState {
@@ -8,6 +9,8 @@ interface DiscoveryState {
   loading: boolean
   error: string
   searchQuery: string
+  selectedCategories: WorkCategoryValue[]
+  selectedProvince: string | null
 }
 
 export const useDiscoveryStore = defineStore('discovery', {
@@ -16,6 +19,8 @@ export const useDiscoveryStore = defineStore('discovery', {
     loading: false,
     error: '',
     searchQuery: '',
+    selectedCategories: [],
+    selectedProvince: null,
   }),
 
   getters: {
@@ -23,28 +28,59 @@ export const useDiscoveryStore = defineStore('discovery', {
       const q = state.searchQuery.trim().toLowerCase()
       if (!q) return state.results
       return state.results.filter((p) => {
-        const haystack = `${p.firstName} ${p.lastName} ${p.username}`.toLowerCase()
+        const haystack =
+          `${p.firstName} ${p.lastName} ${p.username} ${p.portfolioSearchText ?? ''}`.toLowerCase()
         return haystack.includes(q)
       })
     },
   },
 
   actions: {
+    /** Live, cheap: just narrows the already-fetched results. No refetch. */
     setSearchQuery(value: string) {
       this.searchQuery = value
     },
 
-    async search(filters: { categories: WorkCategoryValue[]; province: string | null }) {
+    toggleCategory(value: WorkCategoryValue) {
+      const set = new Set(this.selectedCategories)
+      set.has(value) ? set.delete(value) : set.add(value)
+      this.selectedCategories = Array.from(set)
+      this.runSearch()
+    },
+
+    setProvince(value: string | null) {
+      this.selectedProvince = value
+      this.runSearch()
+    },
+
+    /** On submit: parse free text for category/province, apply as real filters, keep the rest as substring search. */
+    submitSearch(rawQuery: string) {
+      this.searchQuery = rawQuery
+      const parsed = parseSearchQuery(rawQuery)
+
+      if (parsed.categories.length > 0) {
+        const set = new Set(this.selectedCategories)
+        parsed.categories.forEach((c) => set.add(c))
+        this.selectedCategories = Array.from(set)
+      }
+      if (parsed.province) {
+        this.selectedProvince = parsed.province
+      }
+
+      this.runSearch()
+    },
+
+    async runSearch() {
       this.loading = true
       this.error = ''
       try {
         const constraints = [where('role', '==', 'professional')]
-        if (filters.province) {
-          constraints.push(where('province', '==', filters.province))
+        if (this.selectedProvince) {
+          constraints.push(where('province', '==', this.selectedProvince))
         }
-        if (filters.categories.length > 0) {
+        if (this.selectedCategories.length > 0) {
           constraints.push(
-            where('workCategories', 'array-contains-any', filters.categories.slice(0, 10)),
+            where('workCategories', 'array-contains-any', this.selectedCategories.slice(0, 10)),
           )
         }
         const q = firestoreQuery(collection(db, 'users'), ...constraints)
