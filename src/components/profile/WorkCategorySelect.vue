@@ -29,7 +29,7 @@ function toggle(value: WorkCategoryValue) {
         v-for="opt in WORK_CATEGORIES"
         :key="opt.value"
         type="button"
-        class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
+        class="rounded-lg border px-3 py-1.5 text-xs font-medium transition"
         :class="
           modelValue.includes(opt.value)
             ? 'border-primary bg-primary text-white'
