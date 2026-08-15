@@ -6,16 +6,11 @@ import { useOnboardingModalStore } from '@/stores/onboardingModal'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/', redirect: '/home' },
     {
-      path: '/',
+      path: '/home',
       name: 'home',
       component: () => import('@/views/LandingView.vue'),
-      beforeEnter: async () => {
-        const authStore = useAuthStore()
-        await authStore.whenReady()
-        if (authStore.isLoggedIn) return { name: 'profile' }
-        return true
-      },
     },
     {
       path: '/profile',

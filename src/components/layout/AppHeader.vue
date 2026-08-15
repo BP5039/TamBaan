@@ -78,7 +78,7 @@ function onSearchSubmit(e: Event) {
 
       <nav class="flex flex-shrink-0 items-center gap-5">
         <router-link
-          to="/"
+          to="/home"
           class="text-sm font-medium pb-0.5"
           :class="
             isActive(['home'])
