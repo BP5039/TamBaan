@@ -36,7 +36,6 @@ export const useDiscoveryStore = defineStore('discovery', {
   },
 
   actions: {
-    /** Live, cheap: just narrows the already-fetched results. No refetch. */
     setSearchQuery(value: string) {
       this.searchQuery = value
     },
@@ -53,20 +52,29 @@ export const useDiscoveryStore = defineStore('discovery', {
       this.runSearch()
     },
 
-    /** On submit: parse free text for category/province, apply as real filters, keep the rest as substring search. */
+    /**
+     * On submit: parse free text for category/province matches and apply
+     * them as real filters. If anything was found, the raw text is cleared
+     * afterward — otherwise it would also be required as a literal
+     * substring match on name/username/portfolio text, which cancels out
+     * the filter that was just correctly applied.
+     */
     submitSearch(rawQuery: string) {
-      this.searchQuery = rawQuery
       const parsed = parseSearchQuery(rawQuery)
+      let filterApplied = false
 
       if (parsed.categories.length > 0) {
         const set = new Set(this.selectedCategories)
         parsed.categories.forEach((c) => set.add(c))
         this.selectedCategories = Array.from(set)
+        filterApplied = true
       }
       if (parsed.province) {
         this.selectedProvince = parsed.province
+        filterApplied = true
       }
 
+      this.searchQuery = filterApplied ? '' : rawQuery
       this.runSearch()
     },
 
