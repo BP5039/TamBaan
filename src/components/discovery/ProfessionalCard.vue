@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 import { labelForCategory } from '@/constants/workCategories'
 import StarRating from '@/components/ui/StarRating.vue'
 import type { UserProfile } from '@/types'
+import { formatLastSeen } from '@/utils/lastSeen'
 
 const props = defineProps<{ profile: UserProfile }>()
 const router = useRouter()
@@ -30,6 +31,7 @@ function openProfile() {
     </div>
 
     <StarRating :rating="profile.rating ?? null" :count="profile.ratingCount ?? 0" class="mb-2" />
+    <p class="mb-2 text-[10px] text-muted">{{ formatLastSeen(profile.lastActiveAt) }}</p>
 
     <div class="mb-2 flex flex-wrap gap-1.5">
       <span

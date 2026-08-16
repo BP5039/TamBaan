@@ -9,6 +9,7 @@ import PortfolioItemCard from '@/components/profile/PortfolioItemCard.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import InviteToProjectModal from '@/components/projects/InviteToProjectModal.vue'
+import { formatLastSeen } from '@/utils/lastSeen'
 
 const route = useRoute()
 const router = useRouter()
@@ -103,6 +104,9 @@ watch(username, load)
               :count="publicProfileStore.profile.ratingCount ?? 0"
               class="mt-2 justify-center md:justify-start"
             />
+            <p v-if="isProfessional" class="mt-1 text-xs text-muted">
+              {{ formatLastSeen(publicProfileStore.profile.lastActiveAt) }}
+            </p>
 
             <p class="mt-2 text-xs text-muted">{{ publicProfileStore.profile.phone }}</p>
             <p v-if="publicProfileStore.profile.lineId" class="text-xs text-muted">

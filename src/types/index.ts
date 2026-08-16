@@ -29,6 +29,7 @@ export interface UserProfile {
   rating?: number | null
   ratingCount?: number
   portfolioSearchText?: string
+  lastActiveAt?: number
   createdAt: number
   updatedAt: number
 }
