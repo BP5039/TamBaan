@@ -82,5 +82,12 @@ function next() {
         Remove
       </button>
     </div>
+
+    <PortfolioLightbox
+      v-if="lightboxOpen"
+      :images="item.images"
+      :start-index="index"
+      @close="lightboxOpen = false"
+    />
   </div>
 </template>
