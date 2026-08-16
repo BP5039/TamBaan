@@ -3,9 +3,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePortfolioStore } from '@/stores/portfolio'
+import { useProjectsStore } from '@/stores/projects'
 import { labelForCategory } from '@/constants/workCategories'
 import PortfolioItemCard from '@/components/profile/PortfolioItemCard.vue'
 import AddPortfolioModal from '@/components/profile/AddPortfolioModal.vue'
+import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
@@ -13,6 +15,7 @@ import AlertBanner from '@/components/ui/AlertBanner.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const portfolioStore = usePortfolioStore()
+const projectsStore = useProjectsStore()
 
 const profile = computed(() => authStore.profile!)
 const isProfessional = computed(() => profile.value.role === 'professional')
@@ -21,9 +24,14 @@ const showAddModal = ref(false)
 const uploading = ref(false)
 const modalUploadError = ref('')
 
+const showCreateProjectModal = ref(false)
+
 onMounted(async () => {
   if (isProfessional.value && authStore.user) {
     await portfolioStore.fetchItems(authStore.user.uid)
+  }
+  if (!isProfessional.value && authStore.user) {
+    await projectsStore.fetchMyProjects(authStore.user.uid, 'homeowner')
   }
 })
 
@@ -65,16 +73,25 @@ async function handleDeleteItem(id: string) {
   if (item) await portfolioStore.removeItem(authStore.user.uid, item)
 }
 
+function onProjectCreated(projectId: string) {
+  showCreateProjectModal.value = false
+  router.push(`/projects/${projectId}`)
+}
+
+function projectStatusStyle(status: string) {
+  if (status === 'active' || status === 'completed') return 'bg-success-bg text-success-text'
+  return 'bg-pending-bg text-pending-text'
+}
+
 async function logout() {
   await authStore.logout()
-  router.push('/')
+  router.push('/home')
 }
 </script>
 
 <template>
   <div v-if="profile" class="mx-auto max-w-4xl px-4 py-8">
     <div class="grid grid-cols-1 gap-6 rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]">
-      <!-- Sidebar: sticky so it stays visible while portfolio scrolls -->
       <div class="flex flex-col self-start text-center md:sticky md:top-16 md:items-start md:text-left">
         <div class="mb-3 h-20 w-20 overflow-hidden rounded-full bg-cream">
           <img v-if="profile.photoURL" :src="profile.photoURL" alt="" class="h-full w-full object-cover" />
@@ -123,16 +140,13 @@ async function logout() {
 
       <div class="hidden bg-cream md:block" />
 
-      <!-- Portfolio / projects column -->
       <div>
         <div class="mb-4 flex items-center justify-between">
           <h2 class="text-sm font-medium text-muted">
             {{ isProfessional ? 'Previous work' : 'My projects' }}
           </h2>
           <BaseButton v-if="isProfessional" @click="openAddModal">+ Add work</BaseButton>
-          <BaseButton v-else disabled title="Coming in a later milestone">
-            + Create project
-          </BaseButton>
+          <BaseButton v-else @click="showCreateProjectModal = true">+ Create project</BaseButton>
         </div>
 
         <AlertBanner
@@ -163,9 +177,25 @@ async function logout() {
           </p>
         </template>
 
-        <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">
-          Project creation is part of the next milestone — check back soon.
-        </p>
+        <template v-else>
+          <div v-if="projectsStore.myProjects.length" class="space-y-2">
+            <button
+              v-for="p in projectsStore.myProjects"
+              :key="p.id"
+              type="button"
+              class="flex w-full items-center justify-between rounded-lg border border-cream bg-white p-3 text-left hover:border-primary/50"
+              @click="router.push(`/projects/${p.id}`)"
+            >
+              <span class="text-sm text-ink">{{ p.name }}</span>
+              <span class="rounded-lg px-2 py-0.5 text-[10px] font-medium" :class="projectStatusStyle(p.status)">
+                {{ p.status === 'active' ? 'Active' : p.status === 'completed' ? 'Completed' : 'Pending' }}
+              </span>
+            </button>
+          </div>
+          <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">
+            No projects yet. Create one to start tracking a renovation.
+          </p>
+        </template>
       </div>
     </div>
 
@@ -175,6 +205,12 @@ async function logout() {
       :upload-error="modalUploadError"
       @close="showAddModal = false"
       @save="handleSavePortfolioItem"
+    />
+
+    <CreateProjectModal
+      v-if="showCreateProjectModal"
+      @close="showCreateProjectModal = false"
+      @created="onProjectCreated"
     />
   </div>
 </template>
