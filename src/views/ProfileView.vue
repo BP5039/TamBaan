@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { useProjectsStore } from '@/stores/projects'
 import { labelForCategory } from '@/constants/workCategories'
+import type { Project } from '@/types/project'
 import PortfolioItemCard from '@/components/profile/PortfolioItemCard.vue'
 import AddPortfolioModal from '@/components/profile/AddPortfolioModal.vue'
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
@@ -29,6 +30,7 @@ const showCreateProjectModal = ref(false)
 onMounted(async () => {
   if (isProfessional.value && authStore.user) {
     await portfolioStore.fetchItems(authStore.user.uid)
+    await projectsStore.fetchPendingInvitations(authStore.user.uid)
   }
   if (!isProfessional.value && authStore.user) {
     await projectsStore.fetchMyProjects(authStore.user.uid, 'homeowner')
@@ -81,6 +83,15 @@ function onProjectCreated(projectId: string) {
 function projectStatusStyle(status: string) {
   if (status === 'active' || status === 'completed') return 'bg-success-bg text-success-text'
   return 'bg-pending-bg text-pending-text'
+}
+
+async function respondToInvitation(project: Project, accept: boolean) {
+  if (accept) {
+    await projectsStore.acceptInvitation(project)
+    router.push(`/projects/${project.id}`)
+  } else {
+    await projectsStore.declineInvitation(project)
+  }
 }
 
 async function logout() {
@@ -141,6 +152,33 @@ async function logout() {
       <div class="hidden bg-cream md:block" />
 
       <div>
+        <div v-if="isProfessional && projectsStore.pendingInvitations.length" class="mb-6 space-y-2">
+          <h2 class="mb-2 text-sm font-medium text-muted">Invitations</h2>
+          <div
+            v-for="inv in projectsStore.pendingInvitations"
+            :key="inv.id"
+            class="rounded-lg border border-cream bg-white p-3"
+          >
+            <p class="text-sm font-medium text-ink">{{ inv.name }}</p>
+            <p class="mb-2 text-xs text-muted">{{ inv.homeownerName }} wants to invite you</p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="flex-1 rounded-lg border border-cream py-1.5 text-xs font-medium text-muted hover:bg-cream/40"
+                @click="respondToInvitation(inv, false)"
+              >
+                Decline
+              </button>
+              <button
+                type="button"
+                class="flex-1 rounded-lg bg-primary py-1.5 text-xs font-semibold text-white hover:bg-primary-dark"
+                @click="respondToInvitation(inv, true)"
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </div>
         <div class="mb-4 flex items-center justify-between">
           <h2 class="text-sm font-medium text-muted">
             {{ isProfessional ? 'Previous work' : 'My projects' }}

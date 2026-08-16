@@ -8,6 +8,7 @@ import { labelForCategory } from '@/constants/workCategories'
 import PortfolioItemCard from '@/components/profile/PortfolioItemCard.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import InviteToProjectModal from '@/components/projects/InviteToProjectModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,11 +22,25 @@ const isOwnProfile = computed(
   () => authStore.isLoggedIn && authStore.profile?.username === username.value,
 )
 
+const showInviteModal = ref(false)
+
 async function load() {
   await publicProfileStore.loadByUsername(username.value)
   if (publicProfileStore.profile?.role === 'professional') {
     await portfolioStore.fetchItems(publicProfileStore.profile.uid)
   }
+}
+
+const canInvite = computed(
+  () =>
+    authStore.isLoggedIn &&
+    authStore.profile?.role === 'homeowner' &&
+    isProfessional.value &&
+    !isOwnProfile.value,
+)
+
+function onInviteSent() {
+  showInviteModal.value = false
 }
 
 onMounted(load)
@@ -108,6 +123,9 @@ watch(username, load)
               {{ labelForCategory(cat) }}
             </span>
           </div>
+          <BaseButton v-if="canInvite" class="mt-3 w-full" @click="showInviteModal = true">
+            Invite to project
+          </BaseButton>
         </div>
 
         <div class="hidden bg-cream md:block" />
@@ -137,5 +155,11 @@ watch(username, load)
         </div>
       </div>
     </template>
+    <InviteToProjectModal
+      v-if="showInviteModal && publicProfileStore.profile"
+      :professional="publicProfileStore.profile"
+      @close="showInviteModal = false"
+      @sent="onInviteSent"
+    />
   </div>
 </template>
