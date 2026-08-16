@@ -15,7 +15,6 @@ function isActive(names: string[]) {
   return typeof route.name === 'string' && names.includes(route.name)
 }
 
-// Purely local — never touches the store or the route until submit.
 const searchInput = ref('')
 
 function onSearchSubmit(e: Event) {
@@ -24,7 +23,6 @@ function onSearchSubmit(e: Event) {
     router.push('/discover')
   }
   discoveryStore.submitSearch(value)
-  searchInput.value = ''
 }
 </script>
 
@@ -92,7 +90,10 @@ function onSearchSubmit(e: Event) {
         </router-link>
 
         <router-link v-if="authStore.isLoggedIn" to="/profile" aria-label="My profile">
-          <div class="h-7 w-7 overflow-hidden rounded-full border border-cream bg-cream">
+          <div
+            class="h-7 w-7 overflow-hidden rounded-full bg-cream"
+            :class="isActive(['profile']) ? 'border-2 border-primary' : 'border border-cream'"
+          >
             <img
               v-if="authStore.profile?.photoURL"
               :src="authStore.profile.photoURL"
