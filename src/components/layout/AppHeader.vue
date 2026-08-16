@@ -29,7 +29,7 @@ function onSearchSubmit(e: Event) {
 </script>
 
 <template>
-  <header class="sticky top-0 z-20 border-b border-cream bg-surface/95 backdrop-blur">
+  <header class="z-20 border-b border-cream bg-surface/95 backdrop-blur">
     <div class="mx-auto flex max-w-4xl items-center gap-4 px-4 py-3">
       <router-link to="/home" class="flex-shrink-0 font-display text-base font-bold text-ink">
         TamBaan

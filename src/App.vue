@@ -6,9 +6,9 @@ import OnboardingModal from '@/components/auth/OnboardingModal.vue'
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-surface">
+  <div class="flex h-screen flex-col overflow-hidden bg-surface">
     <AppHeader />
-    <div class="flex-1">
+    <div class="flex-1 overflow-y-auto">
       <RouterView />
     </div>
     <AppFooter />
