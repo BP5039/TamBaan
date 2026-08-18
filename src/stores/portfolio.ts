@@ -14,6 +14,8 @@ import { db, storage } from '@/firebase/config'
 import { createThumbnail } from '@/utils/imageResize'
 import type { PortfolioImage, PortfolioItem } from '@/types'
 
+const PREVIEW_CAP = 12
+
 interface PortfolioState {
   items: PortfolioItem[]
   loading: boolean
@@ -65,15 +67,27 @@ async function uploadOneImage(uid: string, file: File, index: number): Promise<P
   return { full, thumb }
 }
 
-async function syncSearchText(uid: string, items: PortfolioItem[]) {
-  const text = items
-    .map((i) => `${i.title} ${i.description} ${i.location}`)
-    .join(' ')
-    .toLowerCase()
+/**
+ * Keeps two things on the profile doc in sync: a capped preview array
+ * (enough to show a work snippet and match search against, without
+ * bloating the profile doc) and an uncapped count (used for "most/least
+ * work" sorting, which needs to stay accurate even past the preview cap).
+ */
+async function syncPreview(uid: string, items: PortfolioItem[]) {
+  const preview = items.slice(0, PREVIEW_CAP).map((i) => ({
+    id: i.id,
+    title: i.title,
+    thumbUrl: i.images[0]?.thumb ?? '',
+    description: i.description,
+    location: i.location,
+  }))
   try {
-    await updateDoc(doc(db, 'users', uid), { portfolioSearchText: text })
+    await updateDoc(doc(db, 'users', uid), {
+      portfolioPreview: preview,
+      portfolioCount: items.length,
+    })
   } catch (err) {
-    console.error('Failed to sync portfolio search text:', err)
+    console.error('Failed to sync portfolio preview:', err)
   }
 }
 
@@ -148,7 +162,7 @@ export const usePortfolioStore = defineStore('portfolio', {
 
       const docRef = await addDoc(collection(db, 'users', uid, 'portfolio'), payload)
       this.items.unshift({ id: docRef.id, ...payload })
-      await syncSearchText(uid, this.items)
+      await syncPreview(uid, this.items)
     },
 
     async removeItem(uid: string, item: PortfolioItem) {
@@ -167,7 +181,7 @@ export const usePortfolioStore = defineStore('portfolio', {
         }
       }
       this.items = this.items.filter((i) => i.id !== item.id)
-      await syncSearchText(uid, this.items)
+      await syncPreview(uid, this.items)
     },
   },
 })

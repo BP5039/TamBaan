@@ -14,6 +14,14 @@ export type WorkCategoryValue =
   | 'landscaper'
   | 'interior_designer'
 
+export interface PortfolioPreviewItem {
+  id: string
+  title: string
+  thumbUrl: string
+  description: string
+  location: string
+}
+
 export interface UserProfile {
   uid: string
   firstName: string
@@ -28,7 +36,8 @@ export interface UserProfile {
   photoURL: string | null
   rating?: number | null
   ratingCount?: number
-  portfolioSearchText?: string
+  portfolioPreview?: PortfolioPreviewItem[]
+  portfolioCount?: number
   lastActiveAt?: number
   createdAt: number
   updatedAt: number
