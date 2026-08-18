@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useDiscoveryStore } from '@/stores/discovery'
+import { useDiscoveryStore, type SortOption } from '@/stores/discovery'
 import { WORK_CATEGORIES } from '@/constants/workCategories'
 import { THAI_PROVINCES } from '@/constants/provinces'
 import ProfessionalCard from '@/components/discovery/ProfessionalCard.vue'
@@ -10,29 +9,48 @@ const discoveryStore = useDiscoveryStore()
 
 const ALL_PROVINCES = 'All provinces'
 
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'newest', label: 'Newest members' },
+  { value: 'oldest', label: 'Oldest members' },
+  { value: 'mostWork', label: 'Most work shown' },
+  { value: 'leastWork', label: 'Least work shown' },
+  { value: 'highestRated', label: 'Highest rated' },
+]
+
 function onProvinceChange(e: Event) {
   const value = (e.target as HTMLSelectElement).value
   discoveryStore.setProvince(value === ALL_PROVINCES ? null : value)
 }
 
-onMounted(() => {
-  discoveryStore.runSearch()
-})
+function onSortChange(e: Event) {
+  discoveryStore.setSortOption((e.target as HTMLSelectElement).value as SortOption)
+}
 </script>
 
 <template>
   <div>
     <div class="border-b border-cream px-4 py-3">
       <div class="mx-auto max-w-4xl">
-        <select
-          :value="discoveryStore.selectedProvince ?? ALL_PROVINCES"
-          class="mb-3 w-full max-w-[220px] rounded-lg border border-cream bg-white px-3 py-2 text-sm text-ink focus:outline-none"
-          @change="onProvinceChange"
-        >
-          <option>{{ ALL_PROVINCES }}</option>
-          <option v-for="p in THAI_PROVINCES" :key="p" :value="p">{{ p }}</option>
-        </select>
+        <div class="mb-2.5 flex flex-wrap gap-2">
+          <select
+            :value="discoveryStore.selectedProvince ?? ALL_PROVINCES"
+            class="rounded-lg border border-cream bg-white px-3 py-2 text-sm text-ink focus:outline-none"
+            @change="onProvinceChange"
+          >
+            <option>{{ ALL_PROVINCES }}</option>
+            <option v-for="p in THAI_PROVINCES" :key="p" :value="p">{{ p }}</option>
+          </select>
 
+          <select
+            :value="discoveryStore.sortOption"
+            class="rounded-lg border border-cream bg-white px-3 py-2 text-sm text-ink focus:outline-none"
+            @change="onSortChange"
+          >
+            <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+
+        <p class="mb-1.5 text-xs text-muted">Work experience</p>
         <div class="flex flex-wrap gap-1.5">
           <button
             v-for="cat in WORK_CATEGORIES"
@@ -63,8 +81,8 @@ onMounted(() => {
 
       <p v-if="discoveryStore.loading" class="py-10 text-center text-sm text-muted">Searching…</p>
 
-      <div v-else-if="discoveryStore.filteredResults.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <ProfessionalCard v-for="profile in discoveryStore.filteredResults" :key="profile.uid" :profile="profile" />
+      <div v-else-if="discoveryStore.sortedResults.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ProfessionalCard v-for="profile in discoveryStore.sortedResults" :key="profile.uid" :profile="profile" />
       </div>
 
       <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">

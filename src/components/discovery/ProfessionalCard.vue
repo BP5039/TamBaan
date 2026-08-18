@@ -1,39 +1,62 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDiscoveryStore } from '@/stores/discovery'
 import { labelForCategory } from '@/constants/workCategories'
+import { formatLastSeen, activityRingClass, activityTextClass } from '@/utils/lastSeen'
 import StarRating from '@/components/ui/StarRating.vue'
 import type { UserProfile } from '@/types'
-import { formatLastSeen } from '@/utils/lastSeen'
 
 const props = defineProps<{ profile: UserProfile }>()
 const router = useRouter()
-const MAX_BADGES = 3
+const discoveryStore = useDiscoveryStore()
+const MAX_BADGES = 2
 
 function openProfile() {
   router.push(`/discover/${props.profile.username}`)
 }
+
+const matchedItem = computed(() => {
+  const q = discoveryStore.searchQuery.trim().toLowerCase()
+  if (!q) return null
+  return (
+    (props.profile.portfolioPreview ?? []).find((item) =>
+      `${item.title} ${item.description} ${item.location}`.toLowerCase().includes(q),
+    ) ?? null
+  )
+})
+
+const previewItem = computed(() => matchedItem.value ?? props.profile.portfolioPreview?.[0] ?? null)
+const isMatched = computed(() => !!matchedItem.value)
 </script>
 
 <template>
   <button
     type="button"
-    class="w-full rounded-card border border-cream bg-white p-4 text-left transition hover:border-primary/50"
+    class="w-full rounded-card border border-cream bg-white p-3.5 text-left transition hover:border-primary/50"
     @click="openProfile"
   >
-    <div class="mb-2 flex items-center gap-3">
-      <div class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-full bg-cream">
+    <div class="mb-2 flex items-center gap-2.5">
+        <div
+        class="h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full border-[2.5px] bg-cream"
+        :class="activityRingClass(profile.lastActiveAt)"
+        >
         <img v-if="profile.photoURL" :src="profile.photoURL" alt="" class="h-full w-full object-cover" />
       </div>
       <div class="min-w-0">
-        <p class="truncate text-sm font-medium text-ink">{{ profile.firstName }} {{ profile.lastName }}</p>
+        <p class="truncate text-sm font-semibold text-ink">{{ profile.firstName }} {{ profile.lastName }}</p>
         <p class="truncate text-xs text-muted">@{{ profile.username }}</p>
+        <p class="text-[11px] font-medium" :class="activityTextClass(profile.lastActiveAt)">
+          {{ formatLastSeen(profile.lastActiveAt) }}
+        </p>
       </div>
     </div>
 
-    <StarRating :rating="profile.rating ?? null" :count="profile.ratingCount ?? 0" class="mb-2" />
-    <p class="mb-2 text-[10px] text-muted">{{ formatLastSeen(profile.lastActiveAt) }}</p>
+    <StarRating :rating="profile.rating ?? null" :count="profile.ratingCount ?? 0" class="mb-1.5" />
 
-    <div class="mb-2 flex flex-wrap gap-1.5">
+    <p class="mb-1.5 text-xs text-muted">{{ profile.province }}</p>
+
+    <div class="mb-2.5 flex flex-wrap gap-1">
       <span
         v-for="cat in profile.workCategories.slice(0, MAX_BADGES)"
         :key="cat"
@@ -49,6 +72,21 @@ function openProfile() {
       </span>
     </div>
 
-    <p class="text-xs text-muted">{{ profile.province }}</p>
+    <div
+      v-if="previewItem"
+      class="-mx-3.5 -mb-3.5 flex items-center gap-2 rounded-b-card px-3.5 py-2.5"
+      :class="isMatched ? 'bg-success-bg' : 'bg-surface'"
+    >
+      <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-cream">
+        <img v-if="previewItem.thumbUrl" :src="previewItem.thumbUrl" alt="" class="h-full w-full object-cover" />
+      </div>
+      <div class="min-w-0">
+        <p class="text-[10px] font-bold" :class="isMatched ? 'text-success-text' : 'text-[#5A5344]'">
+          {{ isMatched ? '✓ Matched your search' : 'Most recent work' }}
+        </p>
+        <p class="truncate text-[11px] text-ink">{{ previewItem.title }}</p>
+      </div>
+    </div>
+    <p v-else class="border-t border-cream pt-2 text-[11px] italic text-muted">No work uploaded yet</p>
   </button>
 </template>
