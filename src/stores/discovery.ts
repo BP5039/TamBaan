@@ -4,6 +4,8 @@ import { db } from '@/firebase/config'
 import { parseSearchQuery } from '@/utils/searchParse'
 import type { UserProfile, WorkCategoryValue } from '@/types'
 
+export type SortOption = 'newest' | 'oldest' | 'mostWork' | 'leastWork' | 'highestRated'
+
 interface DiscoveryState {
   results: UserProfile[]
   loading: boolean
@@ -11,6 +13,7 @@ interface DiscoveryState {
   searchQuery: string
   selectedCategories: WorkCategoryValue[]
   selectedProvince: string | null
+  sortOption: SortOption
 }
 
 export const useDiscoveryStore = defineStore('discovery', {
@@ -21,6 +24,7 @@ export const useDiscoveryStore = defineStore('discovery', {
     searchQuery: '',
     selectedCategories: [],
     selectedProvince: null,
+    sortOption: 'newest',
   }),
 
   getters: {
@@ -28,15 +32,38 @@ export const useDiscoveryStore = defineStore('discovery', {
       const q = state.searchQuery.trim().toLowerCase()
       if (!q) return state.results
       return state.results.filter((p) => {
-        const haystack =
-          `${p.firstName} ${p.lastName} ${p.username} ${p.portfolioSearchText ?? ''}`.toLowerCase()
-        return haystack.includes(q)
+        const nameMatch = `${p.firstName} ${p.lastName} ${p.username}`.toLowerCase().includes(q)
+        const workMatch = (p.portfolioPreview ?? []).some((item) =>
+          `${item.title} ${item.description} ${item.location}`.toLowerCase().includes(q),
+        )
+        return nameMatch || workMatch
       })
+    },
+
+    sortedResults(state): UserProfile[] {
+      const list = [...this.filteredResults]
+      switch (state.sortOption) {
+        case 'newest':
+          return list.sort((a, b) => b.createdAt - a.createdAt)
+        case 'oldest':
+          return list.sort((a, b) => a.createdAt - b.createdAt)
+        case 'mostWork':
+          return list.sort((a, b) => (b.portfolioCount ?? 0) - (a.portfolioCount ?? 0))
+        case 'leastWork':
+          return list.sort((a, b) => (a.portfolioCount ?? 0) - (b.portfolioCount ?? 0))
+        case 'highestRated':
+          return list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+        default:
+          return list
+      }
     },
   },
 
   actions: {
-    /** Manual filter controls stay independent/toggleable — only the search bar resets things. */
+    setSortOption(value: SortOption) {
+      this.sortOption = value
+    },
+
     toggleCategory(value: WorkCategoryValue) {
       const set = new Set(this.selectedCategories)
       set.has(value) ? set.delete(value) : set.add(value)
@@ -49,21 +76,22 @@ export const useDiscoveryStore = defineStore('discovery', {
       this.runSearch()
     },
 
-    /**
-     * Every search bar submission is a fresh, standalone query — it fully
-     * replaces whatever filters were previously active (manual or from an
-     * earlier search), rather than adding to them. If a category/province
-     * was detected, the raw text is cleared so it doesn't also get required
-     * as a literal substring match on top of the filter that was just applied.
-     */
     submitSearch(rawQuery: string) {
       const parsed = parseSearchQuery(rawQuery)
-      const filterApplied = parsed.categories.length > 0 || !!parsed.province
+      let filterApplied = false
 
-      this.selectedCategories = parsed.categories
-      this.selectedProvince = parsed.province
+      if (parsed.categories.length > 0) {
+        const set = new Set(this.selectedCategories)
+        parsed.categories.forEach((c) => set.add(c))
+        this.selectedCategories = Array.from(set)
+        filterApplied = true
+      }
+      if (parsed.province) {
+        this.selectedProvince = parsed.province
+        filterApplied = true
+      }
+
       this.searchQuery = filterApplied ? '' : rawQuery
-
       this.runSearch()
     },
 
