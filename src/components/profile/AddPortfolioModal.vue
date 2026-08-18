@@ -180,7 +180,8 @@ function submit() {
         <BaseInput
           v-model="title"
           label="Title"
-          placeholder="e.g. ABCD Villa — pipe repiping"
+          hint="Something you'd recognize later — the property, the client, or what the job was."
+          placeholder="e.g. Bansuan Condo — bathroom repipe"
           required
           class="mb-4"
         />
@@ -189,7 +190,8 @@ function submit() {
         <BaseTextarea
           v-model="description"
           label="Description"
-          placeholder="What was the job? e.g. Full bathroom retile, 2 weeks"
+          hint="What you actually did — materials, scope, anything worth remembering."
+          placeholder="e.g. Full bathroom retile, 2 weeks"
           :maxlength="200"
           :rows="3"
           required

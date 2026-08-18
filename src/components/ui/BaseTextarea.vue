@@ -3,6 +3,7 @@ withDefaults(
   defineProps<{
     modelValue: string
     label?: string
+    hint?: string
     placeholder?: string
     error?: string
     rows?: number
@@ -22,9 +23,10 @@ defineEmits<{ 'update:modelValue': [value: string] }>()
 
 <template>
   <label class="block">
-    <span v-if="label" class="mb-1.5 block text-sm font-medium text-ink">
+    <span v-if="label" class="block text-sm font-medium text-ink" :class="hint ? 'mb-0.5' : 'mb-1.5'">
       {{ label }}<span v-if="required" class="text-error"> *</span>
     </span>
+    <span v-if="hint" class="mb-1.5 block text-xs leading-snug text-muted">{{ hint }}</span>
     <textarea
       :value="modelValue"
       :placeholder="placeholder"

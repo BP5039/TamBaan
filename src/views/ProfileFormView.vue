@@ -155,8 +155,18 @@ async function onSubmit() {
       </div>
 
       <div class="grid grid-cols-2 gap-4">
-        <BaseInput v-model="form.lineId" label="LINE ID" placeholder="e.g. siriporn.k" />
-        <BaseInput v-model="form.facebookId" label="Facebook name" placeholder="e.g. Siriporn Kaewkla" />
+        <BaseInput
+          v-model="form.lineId"
+          label="LINE ID"
+          hint="So people can reach you directly."
+          placeholder="e.g. siriporn.k"
+        />
+        <BaseInput
+          v-model="form.facebookId"
+          label="Facebook name"
+          hint="Optional, if you prefer Facebook."
+          placeholder="e.g. Siriporn Kaewkla"
+        />
       </div>
 
       <BaseSelect

@@ -61,13 +61,21 @@ async function submit() {
       <AlertBanner v-if="error" variant="error" title="Can't create this yet" :message="error" class="mb-4" />
 
       <fieldset :disabled="saving" class="border-0 p-0">
-        <BaseInput v-model="name" label="Project name" placeholder="e.g. Kitchen renovation" required class="mb-4" />
+        <BaseInput
+        v-model="name"
+        label="Project name"
+        hint="A name you and your contractor will both recognize."
+        placeholder="e.g. Kitchen renovation"
+        required
+        class="mb-4"
+        />
         <BaseTextarea
-          v-model="description"
-          label="Description"
-          placeholder="What's this project about?"
-          :rows="3"
-          class="mb-4"
+        v-model="description"
+        label="Description"
+        hint="Optional — any context that helps your contractor understand the scope."
+        placeholder="What's this project about?"
+        :rows="3"
+        class="mb-4"
         />
         <div class="mb-5 grid grid-cols-2 gap-3">
           <BaseInput v-model="plannedStartDate" type="date" label="Planned start" required />
