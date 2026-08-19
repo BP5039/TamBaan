@@ -88,7 +88,18 @@ function onSearchSubmit(e: Event) {
         >
           Find professionals
         </router-link>
-
+        <router-link
+          v-if="authStore.isLoggedIn"
+          to="/projects"
+          class="text-sm font-medium pb-0.5"
+          :class="
+            isActive(['my-projects', 'project-hub', 'project-tasks', 'project-timeline'])
+              ? 'border-b-2 border-primary text-primary font-semibold'
+              : 'text-muted hover:text-ink'
+          "
+        >
+          My projects
+        </router-link>
         <router-link v-if="authStore.isLoggedIn" to="/profile" aria-label="My profile">
           <div
             class="h-7 w-7 overflow-hidden rounded-full bg-cream"
