@@ -5,14 +5,17 @@ import {
   doc,
   getDoc,
   getDocs,
+  orderBy,
   query,
+  runTransaction,
   updateDoc,
   where,
 } from 'firebase/firestore'
 import { db } from '@/firebase/config'
-import type { Project } from '@/types/project'
-import type { UserProfile } from '@/types'
+import type { Project, ProjectReview } from '@/types/project'
+import type { PortfolioImage, PortfolioItem, UserProfile } from '@/types'
 import { useNotificationsStore } from '@/stores/notifications'
+import { syncPreview } from '@/stores/portfolio'
 
 interface ProjectsState {
   myProjects: Project[]
@@ -118,6 +121,7 @@ export const useProjectsStore = defineStore('projects', {
         pendingInvitationName: null,
         pendingInvitationUsername: null,
         lastVerifiedPhotoUrl: null,
+        review: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
     }
@@ -196,6 +200,102 @@ export const useProjectsStore = defineStore('projects', {
         project.id,
         project.name,
     )
+    },
+
+    /**
+     * Homeowner-only, one-time, final action. Locks in the review, marks the
+     * project complete, folds the score into the professional's aggregate
+     * rating, and auto-publishes every verified progress photo as a
+     * portfolio piece — so a finished TamBaan project and a manually
+     * curated "past work" entry end up visually indistinguishable.
+     */
+    async completeProject(
+      project: Project,
+      reviewInput: { workQuality: number; communication: number; timeliness: number; comment: string },
+    ) {
+      const overall = (reviewInput.workQuality + reviewInput.communication + reviewInput.timeliness) / 3
+      const review: ProjectReview = { ...reviewInput, overall, createdAt: Date.now() }
+
+      await updateDoc(doc(db, 'projects', project.id), {
+        status: 'completed',
+        review,
+        updatedAt: Date.now(),
+      })
+      if (this.currentProject?.id === project.id) {
+        this.currentProject.status = 'completed'
+        this.currentProject.review = review
+      }
+      const listed = this.myProjects.find((p) => p.id === project.id)
+      if (listed) {
+        listed.status = 'completed'
+        listed.review = review
+      }
+
+      const contractorUid = project.contractorUid
+      if (!contractorUid) return
+
+      // Weighted-average rating update — avoids re-reading every past review just to stay current.
+      const profileRef = doc(db, 'users', contractorUid)
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(profileRef)
+        const data = snap.data() as UserProfile | undefined
+        const oldCount = data?.ratingCount ?? 0
+        const oldRating = data?.rating ?? 0
+        const newCount = oldCount + 1
+        const newRating = (oldRating * oldCount + overall) / newCount
+        tx.update(profileRef, { rating: newRating, ratingCount: newCount, updatedAt: Date.now() })
+      })
+
+      // Gather every verified photo across this project's tasks for the portfolio piece.
+      const verifiedSnap = await getDocs(
+        query(collection(db, 'projects', project.id, 'updates'), where('status', '==', 'verified')),
+      )
+      const images = verifiedSnap.docs.flatMap(
+        (d) => (d.data().images as PortfolioImage[] | undefined) ?? [],
+      )
+
+      if (images.length) {
+        await addDoc(collection(db, 'users', contractorUid, 'portfolio'), {
+          title: project.name,
+          images,
+          description: project.description,
+          year: project.plannedStartDate ? new Date(project.plannedStartDate).getFullYear() : new Date().getFullYear(),
+          location: project.location,
+          source: 'collaboration' as const,
+          projectId: project.id,
+          createdAt: Date.now(),
+        })
+
+        // Keep the contractor's denormalized preview/count in sync, same as a manual add would.
+        const allSnap = await getDocs(
+          query(collection(db, 'users', contractorUid, 'portfolio'), orderBy('createdAt', 'desc')),
+        )
+        const allItems = allSnap.docs.map((d) => {
+          const data = d.data() as Record<string, unknown>
+          return {
+            id: d.id,
+            title: typeof data.title === 'string' ? data.title : 'Untitled work',
+            images: Array.isArray(data.images) ? (data.images as PortfolioImage[]) : [],
+            description: typeof data.description === 'string' ? data.description : '',
+            year: typeof data.year === 'number' ? data.year : new Date().getFullYear(),
+            location: typeof data.location === 'string' ? data.location : '',
+            source: data.source === 'collaboration' ? 'collaboration' : 'manual',
+            projectId: typeof data.projectId === 'string' ? data.projectId : null,
+            createdAt: (data.createdAt as number) ?? Date.now(),
+          } satisfies PortfolioItem
+        })
+        await syncPreview(contractorUid, allItems)
+      }
+
+      const notificationsStore = useNotificationsStore()
+      await notificationsStore.notify(
+        contractorUid,
+        'project_completed',
+        'Project completed',
+        `${project.homeownerName} marked "${project.name}" complete and left a review`,
+        project.id,
+        project.name,
+      )
     },
   },
 })
