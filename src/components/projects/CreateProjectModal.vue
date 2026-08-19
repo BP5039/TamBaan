@@ -6,6 +6,8 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { THAI_PROVINCES } from '@/constants/provinces'
 
 const emit = defineEmits<{ close: []; created: [projectId: string] }>()
 
@@ -18,11 +20,16 @@ const plannedStartDate = ref('')
 const plannedEndDate = ref('')
 const error = ref('')
 const saving = ref(false)
+const location = ref('')
 
 async function submit() {
   error.value = ''
   if (!name.value.trim()) {
     error.value = 'Give the project a name.'
+    return
+  }
+  if (!location.value) {
+    error.value = 'Select a location for the project.'
     return
   }
   if (!plannedStartDate.value || !plannedEndDate.value) {
@@ -40,6 +47,7 @@ async function submit() {
     const project = await projectsStore.createProject(authStore.profile, {
       name: name.value.trim(),
       description: description.value.trim(),
+      location: location.value,
       plannedStartDate: plannedStartDate.value,
       plannedEndDate: plannedEndDate.value,
     })
@@ -66,6 +74,14 @@ async function submit() {
         label="Project name"
         hint="A name you and your contractor will both recognize."
         placeholder="e.g. Kitchen renovation"
+        required
+        class="mb-4"
+        />
+        <BaseSelect
+        v-model="location"
+        label="Location"
+        :options="THAI_PROVINCES"
+        hint="Where the work is happening."
         required
         class="mb-4"
         />

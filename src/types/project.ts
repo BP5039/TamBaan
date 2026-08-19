@@ -4,6 +4,7 @@ export interface Project {
   id: string
   name: string
   description: string
+  location: string
   plannedStartDate: string
   plannedEndDate: string
   status: ProjectStatus

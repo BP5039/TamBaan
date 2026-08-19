@@ -57,6 +57,6 @@ export interface PortfolioItem {
   description: string
   year: number
   location: string
-  source: 'manual'
+  source: 'manual' | 'collaboration'
   createdAt: number
 }

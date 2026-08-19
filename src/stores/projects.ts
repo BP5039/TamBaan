@@ -81,10 +81,16 @@ export const useProjectsStore = defineStore('projects', {
     },
 
     async createProject(
-      homeowner: UserProfile,
-      data: { name: string; description: string; plannedStartDate: string; plannedEndDate: string },
+    homeowner: UserProfile,
+    data: {
+        name: string
+        description: string
+        location: string
+        plannedStartDate: string
+        plannedEndDate: string
+    },
     ) {
-      const payload = {
+    const payload = {
         ...data,
         status: 'pending' as const,
         homeownerUid: homeowner.uid,
@@ -98,11 +104,11 @@ export const useProjectsStore = defineStore('projects', {
         pendingInvitationUsername: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-      }
-      const docRef = await addDoc(collection(db, 'projects'), payload)
-      const project = { id: docRef.id, ...payload } as Project
-      this.myProjects.unshift(project)
-      return project
+    }
+    const docRef = await addDoc(collection(db, 'projects'), payload)
+    const project = { id: docRef.id, ...payload } as Project
+    this.myProjects.unshift(project)
+    return project
     },
 
     async inviteContractor(
