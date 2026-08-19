@@ -21,7 +21,7 @@ export interface Project {
   updatedAt: number
 }
 
-export type TaskStatus = 'not_started' | 'in_progress' | 'done'
+export type TaskStatus = 'not_started' | 'awaiting_review' | 'sent_back' | 'done'
 
 export interface ProjectTask {
   id: string

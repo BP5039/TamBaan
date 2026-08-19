@@ -53,15 +53,6 @@ export const useTasksStore = defineStore('tasks', {
       this.tasks.push({ id: docRef.id, ...payload })
     },
 
-    async updateTaskStatus(projectId: string, taskId: string, status: TaskStatus) {
-      await updateDoc(doc(db, 'projects', projectId, 'tasks', taskId), {
-        status,
-        updatedAt: Date.now(),
-      })
-      const task = this.tasks.find((t) => t.id === taskId)
-      if (task) task.status = status
-    },
-
     async editTask(projectId: string, taskId: string, title: string, description: string) {
       const task = this.tasks.find((t) => t.id === taskId)
       if (task?.hasProgress) throw new Error('task-locked')
