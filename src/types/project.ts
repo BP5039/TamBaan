@@ -31,3 +31,19 @@ export interface ProjectTask {
   createdAt: number
   updatedAt: number
 }
+
+export type ProgressUpdateStatus = 'pending' | 'verified' | 'sent_back'
+
+export interface ProgressUpdate {
+  id: string
+  taskId: string
+  taskTitle: string
+  images: { thumb: string; full: string }[]
+  description: string
+  status: ProgressUpdateStatus
+  sentBackReason: string | null
+  exifTimestamp: number | null
+  exifDevice: string | null
+  createdAt: number
+  updatedAt: number
+}
