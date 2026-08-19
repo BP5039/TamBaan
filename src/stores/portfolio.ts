@@ -33,6 +33,10 @@ function normalizeImages(data: Record<string, unknown>): PortfolioImage[] {
   return []
 }
 
+function normalizeSource(data: Record<string, unknown>): 'manual' | 'collaboration' {
+  return data.source === 'collaboration' ? 'collaboration' : 'manual'
+}
+
 function normalizeTitle(data: Record<string, unknown>): string {
   if (typeof data.title === 'string' && data.title.trim()) return data.title
   if (typeof data.description === 'string' && data.description.trim()) {
@@ -73,7 +77,7 @@ async function uploadOneImage(uid: string, file: File, index: number): Promise<P
  * bloating the profile doc) and an uncapped count (used for "most/least
  * work" sorting, which needs to stay accurate even past the preview cap).
  */
-async function syncPreview(uid: string, items: PortfolioItem[]) {
+export async function syncPreview(uid: string, items: PortfolioItem[]) {
   const preview = items.slice(0, PREVIEW_CAP).map((i) => ({
     id: i.id,
     title: i.title,
@@ -131,7 +135,8 @@ export const usePortfolioStore = defineStore('portfolio', {
                 ? data.year
                 : new Date((data.createdAt as number) ?? Date.now()).getFullYear(),
             location: typeof data.location === 'string' ? data.location : 'Unknown',
-            source: 'manual' as const,
+            source: normalizeSource(data),
+            projectId: typeof data.projectId === 'string' ? data.projectId : null,
             createdAt: (data.createdAt as number) ?? Date.now(),
           } satisfies PortfolioItem
         })
@@ -157,6 +162,7 @@ export const usePortfolioStore = defineStore('portfolio', {
         year,
         location,
         source: 'manual' as const,
+        projectId: null,
         createdAt: Date.now(),
       }
 
