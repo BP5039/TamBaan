@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useDiscoveryStore, type SortOption } from '@/stores/discovery'
 import { WORK_CATEGORIES } from '@/constants/workCategories'
 import { THAI_PROVINCES } from '@/constants/provinces'
@@ -17,6 +18,12 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'highestRated', label: 'Highest rated' },
 ]
 
+const hasActiveFilters = () =>
+  discoveryStore.selectedProvince !== null ||
+  discoveryStore.selectedCategories.length > 0 ||
+  discoveryStore.sortOption !== 'newest' ||
+  discoveryStore.searchQuery !== ''
+
 function onProvinceChange(e: Event) {
   const value = (e.target as HTMLSelectElement).value
   discoveryStore.setProvince(value === ALL_PROVINCES ? null : value)
@@ -25,13 +32,25 @@ function onProvinceChange(e: Event) {
 function onSortChange(e: Event) {
   discoveryStore.setSortOption((e.target as HTMLSelectElement).value as SortOption)
 }
+
+function resetFilters() {
+  discoveryStore.selectedProvince = null
+  discoveryStore.selectedCategories = []
+  discoveryStore.sortOption = 'newest'
+  discoveryStore.searchQuery = ''
+  discoveryStore.runSearch()
+}
+
+onMounted(() => {
+  discoveryStore.runSearch()
+})
 </script>
 
 <template>
   <div>
     <div class="border-b border-cream px-4 py-3">
       <div class="mx-auto max-w-4xl">
-        <div class="mb-2.5 flex flex-wrap gap-2">
+        <div class="mb-2.5 flex flex-wrap items-center gap-2">
           <select
             :value="discoveryStore.selectedProvince ?? ALL_PROVINCES"
             class="rounded-lg border border-cream bg-white px-3 py-2 text-sm text-ink focus:outline-none"
@@ -48,6 +67,15 @@ function onSortChange(e: Event) {
           >
             <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
+
+          <button
+            v-if="hasActiveFilters()"
+            type="button"
+            class="text-xs font-medium text-muted underline hover:text-ink"
+            @click="resetFilters"
+          >
+            Reset filters
+          </button>
         </div>
 
         <p class="mb-1.5 text-xs text-muted">Work experience</p>
