@@ -31,6 +31,20 @@ export const useProjectsStore = defineStore('projects', {
     error: '',
   }),
 
+  getters: {
+    groupedByYear(state): { year: number; items: Project[] }[] {
+      const map = new Map<number, Project[]>()
+      for (const p of state.myProjects) {
+        const year = p.plannedStartDate ? new Date(p.plannedStartDate).getFullYear() : 0
+        if (!map.has(year)) map.set(year, [])
+        map.get(year)!.push(p)
+      }
+      return Array.from(map.entries())
+        .sort((a, b) => b[0] - a[0])
+        .map(([year, items]) => ({ year, items }))
+    },
+  },
+
   actions: {
     async fetchMyProjects(uid: string, role: 'homeowner' | 'professional') {
       this.loading = true
