@@ -71,8 +71,8 @@ function next() {
     </div>
     <div class="p-3">
       <p class="mb-0.5 text-xs font-semibold text-ink">{{ item.title }}</p>
-      <p class="text-[11px] text-muted">{{ item.location }}</p>
       <p class="line-clamp-3 text-xs text-ink/90">{{ item.description }}</p>
+      <p class="mt-1 text-[11px] text-muted">{{ item.location }}</p>
       <button
         v-if="canDelete"
         type="button"
