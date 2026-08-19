@@ -17,7 +17,6 @@ const projectId = computed(() => route.params.id as string)
 const project = computed(() => projectsStore.currentProject)
 
 const isHomeowner = computed(() => project.value?.homeownerUid === authStore.user?.uid)
-const isContractor = computed(() => project.value?.contractorUid === authStore.user?.uid)
 
 const newTaskTitle = ref('')
 const newTaskDescription = ref('')
@@ -31,15 +30,17 @@ const editError = ref('')
 
 const doneCount = computed(() => tasksStore.tasks.filter((t) => t.status === 'done').length)
 
-const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
-  { value: 'not_started', label: 'Not started' },
-  { value: 'in_progress', label: 'In progress' },
-  { value: 'done', label: 'Done' },
-]
+const STATUS_LABELS: Record<TaskStatus, string> = {
+  not_started: 'Not started',
+  awaiting_review: 'Awaiting review',
+  sent_back: 'Sent back',
+  done: 'Done',
+}
 
 function statusStyle(status: TaskStatus) {
   if (status === 'done') return 'bg-success-bg text-success-text'
-  if (status === 'in_progress') return 'bg-pending-bg text-pending-text'
+  if (status === 'awaiting_review') return 'bg-pending-bg text-pending-text'
+  if (status === 'sent_back') return 'bg-error-bg text-error-text'
   return 'bg-cream text-muted'
 }
 
@@ -98,11 +99,6 @@ async function deleteTask(taskId: string) {
     tasksStore.error = "This task can't be deleted — progress has already been logged against it."
   }
 }
-
-async function onStatusChange(taskId: string, e: Event) {
-  const value = (e.target as HTMLSelectElement).value as TaskStatus
-  await tasksStore.updateTaskStatus(projectId.value, taskId, value)
-}
 </script>
 
 <template>
@@ -147,17 +143,8 @@ async function onStatusChange(taskId: string, e: Event) {
           </div>
 
           <div class="flex flex-shrink-0 items-center gap-2">
-            <select
-              v-if="isContractor"
-              :value="task.status"
-              class="rounded-lg border-0 text-[10px] font-medium focus:outline-none"
-              :class="statusStyle(task.status)"
-              @change="onStatusChange(task.id, $event)"
-            >
-              <option v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
-            <span v-else class="rounded-lg px-2 py-0.5 text-[10px] font-medium" :class="statusStyle(task.status)">
-              {{ STATUS_OPTIONS.find((o) => o.value === task.status)?.label }}
+            <span class="rounded-lg px-2 py-0.5 text-[10px] font-medium" :class="statusStyle(task.status)">
+              {{ STATUS_LABELS[task.status] }}
             </span>
 
             <template v-if="isHomeowner && !task.hasProgress">

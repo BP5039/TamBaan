@@ -45,6 +45,10 @@ const acceptAttr = ALLOWED_IMAGE_TYPES.join(',')
 
 const selectedTask = computed(() => props.tasks.find((t) => t.id === taskId.value) ?? null)
 
+const selectableTasks = computed(() =>
+  props.tasks.filter((t) => t.status === 'not_started' || t.status === 'sent_back'),
+)
+
 async function onFileChange(e: Event) {
   const picked = (e.target as HTMLInputElement).files?.[0]
   if (!picked) return
@@ -173,8 +177,8 @@ function submit() {
           class="mb-4 w-full rounded-lg border border-cream bg-white px-3 py-2.5 text-sm text-ink focus:outline-none"
         >
           <option value="" disabled>Select a task…</option>
-          <option v-for="t in tasks" :key="t.id" :value="t.id" :disabled="t.status === 'done'">
-            {{ t.title }}{{ t.status === 'done' ? ' — Done' : '' }}
+          <option v-for="t in selectableTasks" :key="t.id" :value="t.id">
+            {{ t.title }}
           </option>
         </select>
 
