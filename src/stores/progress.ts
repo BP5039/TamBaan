@@ -12,6 +12,7 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/firebase/config'
 import { createThumbnail } from '@/utils/imageResize'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useTasksStore } from '@/stores/tasks'
 import type { ProgressUpdate } from '@/types/project'
 
 interface ProgressState {
@@ -93,6 +94,7 @@ export const useProgressStore = defineStore('progress', {
 
       await updateDoc(doc(db, 'projects', projectId, 'tasks', taskId), {
         hasProgress: true,
+        status: 'awaiting_review',
         updatedAt: Date.now(),
       })
 
@@ -108,15 +110,22 @@ export const useProgressStore = defineStore('progress', {
     },
 
     async verifyUpdate(projectId: string, updateId: string, contractorUid: string, taskTitle: string) {
+      const u = this.updates.find((x) => x.id === updateId)
       await updateDoc(doc(db, 'projects', projectId, 'updates', updateId), {
         status: 'verified',
         sentBackReason: null,
         updatedAt: Date.now(),
       })
-      const u = this.updates.find((x) => x.id === updateId)
       if (u) {
         u.status = 'verified'
         u.sentBackReason = null
+        await updateDoc(doc(db, 'projects', projectId, 'tasks', u.taskId), {
+          status: 'done',
+          updatedAt: Date.now(),
+        })
+        const tasksStore = useTasksStore()
+        const task = tasksStore.tasks.find((t) => t.id === u.taskId)
+        if (task) task.status = 'done'
       }
 
       const notificationsStore = useNotificationsStore()
@@ -137,15 +146,22 @@ export const useProgressStore = defineStore('progress', {
       contractorUid: string,
       taskTitle: string,
     ) {
+      const u = this.updates.find((x) => x.id === updateId)
       await updateDoc(doc(db, 'projects', projectId, 'updates', updateId), {
         status: 'sent_back',
         sentBackReason: reason,
         updatedAt: Date.now(),
       })
-      const u = this.updates.find((x) => x.id === updateId)
       if (u) {
         u.status = 'sent_back'
         u.sentBackReason = reason
+        await updateDoc(doc(db, 'projects', projectId, 'tasks', u.taskId), {
+          status: 'sent_back',
+          updatedAt: Date.now(),
+        })
+        const tasksStore = useTasksStore()
+        const task = tasksStore.tasks.find((t) => t.id === u.taskId)
+        if (task) task.status = 'sent_back'
       }
 
       const notificationsStore = useNotificationsStore()
