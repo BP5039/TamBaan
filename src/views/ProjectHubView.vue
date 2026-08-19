@@ -27,6 +27,22 @@ const isParticipant = computed(() => {
 
 const isHomeowner = computed(() => project.value?.homeownerUid === authStore.user?.uid)
 
+const isPendingInvitee = computed(
+  () => !!project.value?.pendingInvitationUid && project.value.pendingInvitationUid === authStore.user?.uid,
+)
+
+const respondLoading = computed(() => projectsStore.loading)
+
+async function respond(action: 'accept' | 'decline') {
+  if (!project.value) return
+  if (action === 'accept') {
+    await projectsStore.acceptInvitation(project.value)
+  } else {
+    await projectsStore.declineInvitation(project.value)
+  }
+  await load()
+}
+
 const statusLabel = computed(() => {
   switch (project.value?.status) {
     case 'active':
@@ -84,6 +100,22 @@ onMounted(load)
         <div v-if="project.contractorUid" class="mb-4 rounded-lg border border-cream p-3">
           <p class="text-xs text-muted">Contractor</p>
           <p class="text-sm font-medium text-ink">{{ project.contractorName }}</p>
+        </div>
+        <div
+          v-else-if="isPendingInvitee"
+          class="mb-4 rounded-lg border border-pending-border bg-pending-bg p-3"
+        >
+          <p class="mb-3 text-xs text-pending-text">
+            {{ project.homeownerName }} invited you to this project
+          </p>
+          <div class="flex gap-2">
+            <BaseButton variant="outline" :disabled="respondLoading" @click="respond('decline')">
+              Decline
+            </BaseButton>
+            <BaseButton variant="primary" :disabled="respondLoading" @click="respond('accept')">
+              Accept
+            </BaseButton>
+          </div>
         </div>
         <div
           v-else-if="project.pendingInvitationUid"

@@ -20,7 +20,7 @@ function statusStyle(status: string) {
 }
 
 const roleLabel = computed(() =>
-  authStore.profile?.role === 'homeowner' ? 'homeowner' : 'contractor',
+  authStore.profile?.role === 'homeowner' ? 'homeowner' : 'professional',
 )
 </script>
 
