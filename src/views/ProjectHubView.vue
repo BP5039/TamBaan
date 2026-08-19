@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
 import { useTasksStore } from '@/stores/tasks'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import StarRating from '@/components/ui/StarRating.vue'
+import CompleteProjectModal from '@/components/projects/CompleteProjectModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -41,6 +43,34 @@ async function respond(action: 'accept' | 'decline') {
     await projectsStore.declineInvitation(project.value)
   }
   await load()
+}
+
+const allTasksDone = computed(
+  () => tasksStore.tasks.length > 0 && tasksStore.tasks.every((t) => t.status === 'done'),
+)
+
+const showCompleteModal = ref(false)
+const completing = ref(false)
+const completeError = ref('')
+
+async function handleComplete(payload: {
+  workQuality: number
+  communication: number
+  timeliness: number
+  comment: string
+}) {
+  if (!project.value) return
+  completeError.value = ''
+  completing.value = true
+  try {
+    await projectsStore.completeProject(project.value, payload)
+    showCompleteModal.value = false
+  } catch (err) {
+    console.error('completeProject failed:', err)
+    completeError.value = "Couldn't complete the project. Please try again."
+  } finally {
+    completing.value = false
+  }
 }
 
 const statusLabel = computed(() => {
@@ -146,13 +176,55 @@ onMounted(load)
           </BaseButton>
         </div>
 
-        <div class="flex items-center justify-between rounded-lg border border-cream p-3">
-        <p class="text-sm font-medium text-ink">Progress timeline</p>
-        <BaseButton variant="outline" @click="router.push(`/projects/${projectId}/timeline`)">
+        <div class="mb-4 flex items-center justify-between rounded-lg border border-cream p-3">
+          <p class="text-sm font-medium text-ink">Progress timeline</p>
+          <BaseButton variant="outline" @click="router.push(`/projects/${projectId}/timeline`)">
             View timeline →
-        </BaseButton>
+          </BaseButton>
+        </div>
+
+        <div
+          v-if="isHomeowner && project.status === 'active'"
+          class="rounded-lg border border-cream p-3"
+        >
+          <p class="mb-1 text-sm font-medium text-ink">Mark project complete</p>
+          <p class="mb-3 text-xs text-muted">
+            {{
+              allTasksDone
+                ? "All tasks are done. Rate the work and close out this project."
+                : "Finish and verify every task before completing this project."
+            }}
+          </p>
+          <BaseButton full-width :disabled="!allTasksDone" @click="showCompleteModal = true">
+            Complete project
+          </BaseButton>
+        </div>
+
+        <div v-else-if="project.status === 'completed' && project.review" class="rounded-lg border border-cream p-3">
+          <p class="mb-2 text-sm font-medium text-ink">Review</p>
+          <div class="mb-1.5 flex items-center justify-between text-xs text-ink">
+            <span>Work quality</span>
+            <StarRating :rating="project.review.workQuality" :count="0" />
+          </div>
+          <div class="mb-1.5 flex items-center justify-between text-xs text-ink">
+            <span>Communication</span>
+            <StarRating :rating="project.review.communication" :count="0" />
+          </div>
+          <div class="mb-2 flex items-center justify-between text-xs text-ink">
+            <span>Timeliness</span>
+            <StarRating :rating="project.review.timeliness" :count="0" />
+          </div>
+          <p v-if="project.review.comment" class="text-xs text-ink/90">{{ project.review.comment }}</p>
         </div>
       </div>
     </template>
+
+    <CompleteProjectModal
+      v-if="showCompleteModal"
+      :saving="completing"
+      :error="completeError"
+      @close="showCompleteModal = false"
+      @save="handleComplete"
+    />
   </div>
 </template>
