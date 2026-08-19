@@ -10,6 +10,7 @@ import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import InviteToProjectModal from '@/components/projects/InviteToProjectModal.vue'
 import { formatLastSeen } from '@/utils/lastSeen'
+import { activityRingClass } from '@/utils/lastSeen'
 
 const route = useRoute()
 const router = useRouter()
@@ -85,7 +86,10 @@ watch(username, load)
           class="grid flex-1 grid-cols-1 gap-6 overflow-hidden rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]"
         >
           <div class="flex flex-col overflow-y-auto text-center md:items-start md:text-left">
-            <div class="mb-3 h-20 w-20 flex-shrink-0 overflow-hidden rounded-full bg-cream">
+            <div
+              class="mb-3 h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border-[3px] bg-cream"
+              :class="isProfessional ? activityRingClass(publicProfileStore.profile.lastActiveAt) : 'border-cream'"
+            >
               <img
                 v-if="publicProfileStore.profile.photoURL"
                 :src="publicProfileStore.profile.photoURL"
