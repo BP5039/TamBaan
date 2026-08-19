@@ -114,8 +114,11 @@ onMounted(load)
           </BaseButton>
         </div>
 
-        <div class="rounded-lg border border-dashed border-cream p-3 text-center">
-          <p class="text-xs text-muted">Progress timeline coming soon</p>
+        <div class="flex items-center justify-between rounded-lg border border-cream p-3">
+        <p class="text-sm font-medium text-ink">Progress timeline</p>
+        <BaseButton variant="outline" @click="router.push(`/projects/${projectId}/timeline`)">
+            View timeline →
+        </BaseButton>
         </div>
       </div>
     </template>

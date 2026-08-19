@@ -37,6 +37,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresProfile: true },
     },
     {
+      path: '/projects/:id/timeline',
+      name: 'project-timeline',
+      component: () => import('@/views/ProjectTimelineView.vue'),
+      meta: { requiresAuth: true, requiresProfile: true },
+    },
+    {
       path: '/discover',
       name: 'discover',
       component: () => import('@/views/DiscoverView.vue'),

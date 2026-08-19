@@ -29,6 +29,8 @@ const editTitle = ref('')
 const editDescription = ref('')
 const editError = ref('')
 
+const doneCount = computed(() => tasksStore.tasks.filter((t) => t.status === 'done').length)
+
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
   { value: 'not_started', label: 'Not started' },
   { value: 'in_progress', label: 'In progress' },
@@ -109,7 +111,12 @@ async function onStatusChange(taskId: string, e: Event) {
       ← {{ project?.name ?? 'Project' }}
     </BaseButton>
 
-    <h1 class="mb-4 text-xl font-semibold text-ink">Tasks</h1>
+    <div class="mb-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold text-ink">Tasks</h1>
+        <span class="rounded-lg bg-success-bg px-2.5 py-1 text-xs font-semibold text-success-text">
+            {{ doneCount }}/{{ tasksStore.tasks.length }} done
+        </span>
+    </div>
 
     <p v-if="tasksStore.error" class="mb-4 text-xs text-error-text">{{ tasksStore.error }}</p>
 
