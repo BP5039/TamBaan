@@ -3,11 +3,12 @@ import {
   addDoc,
   collection,
   doc,
-  getDocs,
+  onSnapshot,
   orderBy,
   query,
   updateDoc,
   where,
+  type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from '@/firebase/config'
 import type { Notification, NotificationType } from '@/types/notification'
@@ -16,6 +17,9 @@ interface NotificationsState {
   items: Notification[]
   loading: boolean
 }
+
+// Kept outside reactive state — Pinia doesn't need to track a function reference.
+let unsubscribeFn: Unsubscribe | null = null
 
 export const useNotificationsStore = defineStore('notifications', {
   state: (): NotificationsState => ({
@@ -30,45 +34,55 @@ export const useNotificationsStore = defineStore('notifications', {
   },
 
   actions: {
-    async fetchNotifications(uid: string) {
+    /** Starts a live listener — items and unreadCount update instantly, app-wide, with no manual refetch needed. */
+    subscribe(uid: string) {
+      this.unsubscribeAll()
       this.loading = true
-      try {
-        const q = query(
-          collection(db, 'notifications'),
-          where('recipientUid', '==', uid),
-          orderBy('createdAt', 'desc'),
-        )
-        const snap = await getDocs(q)
-        this.items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Notification)
-      } catch (err) {
-        console.error('fetchNotifications failed:', err)
-      } finally {
-        this.loading = false
+      const q = query(
+        collection(db, 'notifications'),
+        where('recipientUid', '==', uid),
+        orderBy('createdAt', 'desc'),
+      )
+      unsubscribeFn = onSnapshot(
+        q,
+        (snap) => {
+          this.items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Notification)
+          this.loading = false
+        },
+        (err) => {
+          console.error('notifications listener failed:', err)
+          this.loading = false
+        },
+      )
+    },
+
+    /** Call on logout so we stop listening and don't leak the previous user's data into the next session. */
+    unsubscribeAll() {
+      if (unsubscribeFn) {
+        unsubscribeFn()
+        unsubscribeFn = null
       }
+      this.items = []
     },
 
     async markAsRead(notificationId: string) {
       const n = this.items.find((x) => x.id === notificationId)
       if (!n || n.read) return
-      n.read = true
       try {
         await updateDoc(doc(db, 'notifications', notificationId), { read: true })
       } catch (err) {
         console.error('markAsRead failed:', err)
-        n.read = false
       }
     },
 
-    async markAllAsRead(uid: string) {
+    async markAllAsRead() {
       const unread = this.items.filter((n) => !n.read)
-      unread.forEach((n) => (n.read = true))
       try {
         await Promise.all(
           unread.map((n) => updateDoc(doc(db, 'notifications', n.id), { read: true })),
         )
       } catch (err) {
         console.error('markAllAsRead failed:', err)
-        await this.fetchNotifications(uid)
       }
     },
 

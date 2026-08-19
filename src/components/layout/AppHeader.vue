@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDiscoveryStore } from '@/stores/discovery'
 import { useAuthModalStore } from '@/stores/authModal'
-import { onMounted } from 'vue'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const router = useRouter()
@@ -14,10 +13,6 @@ const discoveryStore = useDiscoveryStore()
 const authModalStore = useAuthModalStore()
 
 const notificationsStore = useNotificationsStore()
-
-onMounted(async () => {
-  if (authStore.user) await notificationsStore.fetchNotifications(authStore.user.uid)
-})
 
 function isActive(names: string[]) {
   return typeof route.name === 'string' && names.includes(route.name)

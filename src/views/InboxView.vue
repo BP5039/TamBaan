@@ -1,17 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 import type { Notification } from '@/types/notification'
 
 const router = useRouter()
-const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
-
-onMounted(async () => {
-  if (authStore.user) await notificationsStore.fetchNotifications(authStore.user.uid)
-})
 
 async function openNotification(n: Notification) {
   await notificationsStore.markAsRead(n.id)
@@ -19,7 +13,7 @@ async function openNotification(n: Notification) {
 }
 
 async function markAll() {
-  if (authStore.user) await notificationsStore.markAllAsRead(authStore.user.uid)
+  await notificationsStore.markAllAsRead()
 }
 
 function borderColor(type: string) {

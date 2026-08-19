@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { auth, db, storage } from '@/firebase/config'
+import { useNotificationsStore } from '@/stores/notifications'
 import type { ProfileFormData, UserProfile } from '@/types'
 
 interface AuthState {
@@ -48,8 +49,10 @@ export const useAuthStore = defineStore('auth', {
     init() {
       onAuthStateChanged(auth, async (firebaseUser) => {
         this.user = firebaseUser
+        const notificationsStore = useNotificationsStore()
         if (firebaseUser) {
           await this.fetchProfile(firebaseUser.uid)
+          notificationsStore.subscribe(firebaseUser.uid)
           // Fire-and-forget — don't block app load on this, and don't fail loudly
           // if it errors, since it's a nice-to-have signal, not core functionality.
           updateDoc(doc(db, 'users', firebaseUser.uid), { lastActiveAt: Date.now() }).catch((err) =>
@@ -57,6 +60,7 @@ export const useAuthStore = defineStore('auth', {
           )
         } else {
           this.profile = null
+          notificationsStore.unsubscribeAll()
         }
         if (!this.initialized) {
           this.initialized = true
