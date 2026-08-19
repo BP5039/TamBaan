@@ -6,6 +6,7 @@ import { usePortfolioStore } from '@/stores/portfolio'
 import { useProjectsStore } from '@/stores/projects'
 import { labelForCategory } from '@/constants/workCategories'
 import PortfolioItemCard from '@/components/profile/PortfolioItemCard.vue'
+import ProjectCard from '@/components/projects/ProjectCard.vue'
 import AddPortfolioModal from '@/components/profile/AddPortfolioModal.vue'
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
 import StarRating from '@/components/ui/StarRating.vue'
@@ -79,11 +80,6 @@ function onProjectCreated(projectId: string) {
   router.push(`/projects/${projectId}`)
 }
 
-function projectStatusStyle(status: string) {
-  if (status === 'active' || status === 'completed') return 'bg-success-bg text-success-text'
-  return 'bg-pending-bg text-pending-text'
-}
-
 async function respondToInvitation(project: import('@/types/project').Project, accept: boolean) {
   if (accept) {
     await projectsStore.acceptInvitation(project)
@@ -105,7 +101,6 @@ async function logout() {
       <div
         class="grid flex-1 grid-cols-1 gap-6 overflow-hidden rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]"
       >
-        <!-- Sidebar: never scrolls on desktop, own scroll only as a fallback -->
         <div class="flex flex-col overflow-y-auto text-center md:items-start md:text-left">
           <div class="mb-3 h-20 w-20 flex-shrink-0 overflow-hidden rounded-full bg-cream">
             <img v-if="profile.photoURL" :src="profile.photoURL" alt="" class="h-full w-full object-cover" />
@@ -154,7 +149,6 @@ async function logout() {
 
         <div class="hidden bg-cream md:block" />
 
-        <!-- Right column: this is the ONLY thing that scrolls -->
         <div class="flex flex-col overflow-hidden">
           <div class="mb-4 flex flex-shrink-0 items-center justify-between">
             <h2 class="text-sm font-medium text-muted">
@@ -222,19 +216,21 @@ async function logout() {
             </template>
 
             <template v-else>
-              <div v-if="projectsStore.myProjects.length" class="space-y-2">
-                <button
-                  v-for="p in projectsStore.myProjects"
-                  :key="p.id"
-                  type="button"
-                  class="flex w-full items-center justify-between rounded-lg border border-cream bg-white p-3 text-left hover:border-primary/50"
-                  @click="router.push(`/projects/${p.id}`)"
-                >
-                  <span class="text-sm text-ink">{{ p.name }}</span>
-                  <span class="rounded-lg px-2 py-0.5 text-[10px] font-medium" :class="projectStatusStyle(p.status)">
-                    {{ p.status === 'active' ? 'Active' : p.status === 'completed' ? 'Completed' : 'Pending' }}
-                  </span>
-                </button>
+              <div v-if="projectsStore.groupedByYear.length">
+                <div v-for="group in projectsStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
+                  <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
+                  <div class="grid grid-cols-2 gap-4">
+                    <button
+                      v-for="p in group.items"
+                      :key="p.id"
+                      type="button"
+                      class="text-left hover:opacity-90"
+                      @click="router.push(`/projects/${p.id}`)"
+                    >
+                      <ProjectCard :project="p" />
+                    </button>
+                  </div>
+                </div>
               </div>
               <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">
                 No projects yet. Create one to start tracking a renovation.
