@@ -1,19 +1,73 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
     match /users/{userId} {
-      // Profiles are publicly readable (needed for contractor discovery later),
-      // but only the owner can create or edit their own.
       allow read: if true;
       allow create, update: if request.auth != null && request.auth.uid == userId;
       allow delete: if false;
-
       match /portfolio/{itemId} {
         allow read: if true;
         allow create, update, delete: if request.auth != null && request.auth.uid == userId;
       }
+    }
+
+    match /usernames/{username} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+      allow update, delete: if false;
+    }
+
+    match /projects/{projectId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.homeownerUid ||
+        request.auth.uid == resource.data.contractorUid ||
+        request.auth.uid == resource.data.pendingInvitationUid
+      );
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.homeownerUid;
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.homeownerUid ||
+        request.auth.uid == resource.data.contractorUid ||
+        request.auth.uid == resource.data.pendingInvitationUid
+      );
+      allow delete: if false;
+
+      match /tasks/{taskId} {
+        allow read: if request.auth != null && (
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid
+        );
+        allow create: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid;
+        allow update: if request.auth != null && (
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid
+        );
+        allow delete: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid &&
+          resource.data.hasProgress == false;
+      }
+
+      match /updates/{updateId} {
+        allow read: if request.auth != null && (
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid
+        );
+        allow create: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid;
+        allow update: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid;
+        allow delete: if false;
+      }
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.recipientUid;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null &&
+        request.auth.uid == resource.data.recipientUid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if false;
     }
   }
 }

@@ -122,19 +122,22 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async uploadAvatar(file: File) {
-      if (!this.user) throw new Error('Not authenticated')
-      const path = `avatars/${this.user.uid}/${Date.now()}-${file.name}`
-      const storageRef = ref(storage, path)
-      await uploadBytes(storageRef, file)
-      const url = await getDownloadURL(storageRef)
+          if (!this.user) throw new Error('Not authenticated')
+          if (file.size > 5 * 1024 * 1024) {
+            throw new Error('Photo must be under 5MB. Try a smaller image or a screenshot instead.')
+          }
+          const path = `avatars/${this.user.uid}/${Date.now()}-${file.name}`
+          const storageRef = ref(storage, path)
+          await uploadBytes(storageRef, file)
+          const url = await getDownloadURL(storageRef)
 
-      await updateDoc(doc(db, 'users', this.user.uid), {
-        photoURL: url,
-        updatedAt: Date.now(),
-      })
-      if (this.profile) this.profile.photoURL = url
-      return url
-    },
+          await updateDoc(doc(db, 'users', this.user.uid), {
+            photoURL: url,
+            updatedAt: Date.now(),
+          })
+          if (this.profile) this.profile.photoURL = url
+          return url
+        },
 
     async isUsernameAvailable(username: string) {
       const snap = await getDoc(doc(db, 'usernames', username))
