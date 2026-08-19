@@ -20,7 +20,6 @@ const isHomeowner = computed(() => project.value?.homeownerUid === authStore.use
 
 const newTaskTitle = ref('')
 const newTaskDescription = ref('')
-const showDescriptionField = ref(false)
 const addError = ref('')
 
 const editingTaskId = ref<string | null>(null)
@@ -55,12 +54,18 @@ onMounted(load)
 
 async function addTask() {
   addError.value = ''
-  if (!newTaskTitle.value.trim()) return
+  if (!newTaskTitle.value.trim()) {
+    addError.value = 'Give the task a name.'
+    return
+  }
+  if (!newTaskDescription.value.trim()) {
+    addError.value = 'Add a description — this is where the exact spec goes (e.g. "3000K warm white bulbs").'
+    return
+  }
   try {
     await tasksStore.addTask(projectId.value, newTaskTitle.value.trim(), newTaskDescription.value.trim())
     newTaskTitle.value = ''
     newTaskDescription.value = ''
-    showDescriptionField.value = false
   } catch (err) {
     console.error('addTask failed:', err)
     addError.value = "Couldn't add that task. Please try again."
@@ -82,6 +87,10 @@ async function saveEdit(taskId: string) {
   editError.value = ''
   if (!editTitle.value.trim()) {
     editError.value = 'Task needs a name.'
+    return
+  }
+  if (!editDescription.value.trim()) {
+    editError.value = 'Description is required — this is where the exact spec goes.'
     return
   }
   try {
@@ -119,14 +128,17 @@ async function deleteTask(taskId: string) {
     <div class="space-y-2">
       <div v-for="task in tasksStore.tasks" :key="task.id" class="rounded-lg border border-cream bg-white p-3">
         <div v-if="editingTaskId === task.id">
+          <label class="mb-1 block text-[11px] font-medium text-muted">Task name</label>
           <input
             v-model="editTitle"
+            placeholder="e.g. Replace bulb"
             class="mb-2 w-full rounded-lg border border-cream px-2.5 py-1.5 text-sm text-ink focus:outline-none"
           />
+          <label class="mb-1 block text-[11px] font-medium text-muted">Description</label>
           <textarea
             v-model="editDescription"
             rows="2"
-            placeholder="Details (optional)"
+            placeholder="Exact spec, e.g. 3000K warm white bulbs"
             class="mb-2 w-full resize-none rounded-lg border border-cream px-2.5 py-1.5 text-xs text-ink focus:outline-none"
           />
           <p v-if="editError" class="mb-2 text-xs text-error-text">{{ editError }}</p>
@@ -166,39 +178,24 @@ async function deleteTask(taskId: string) {
       <p v-if="tasksStore.tasks.length === 0" class="py-6 text-center text-sm text-muted">No tasks yet.</p>
     </div>
 
-    <div v-if="isHomeowner" class="mt-4">
-      <p v-if="addError" class="mb-2 text-xs text-error-text">{{ addError }}</p>
-      <div class="flex gap-2">
-        <input
-          v-model="newTaskTitle"
-          placeholder="Add a task…"
-          class="flex-1 rounded-lg border border-cream bg-white px-3 py-2 text-sm text-ink focus:outline-none"
-          @keyup.enter="addTask"
-        />
-        <button
-          type="button"
-          class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary text-white hover:bg-primary-dark"
-          @click="addTask"
-        >
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-        </button>
-      </div>
-      <button
-        type="button"
-        class="mt-1.5 text-xs text-muted hover:text-ink"
-        @click="showDescriptionField = !showDescriptionField"
-      >
-        {{ showDescriptionField ? 'Hide details field' : '+ add details' }}
-      </button>
+    <div v-if="isHomeowner" class="mt-4 rounded-lg border border-cream bg-white p-3">
+      <p class="mb-3 text-sm font-medium text-ink">Add a task</p>
+      <label class="mb-1 block text-[11px] font-medium text-muted">Task name</label>
+      <input
+        v-model="newTaskTitle"
+        placeholder="e.g. Replace bulb"
+        class="mb-3 w-full rounded-lg border border-cream px-3 py-2 text-sm text-ink focus:outline-none"
+        @keyup.enter="addTask"
+      />
+      <label class="mb-1 block text-[11px] font-medium text-muted">Description</label>
       <textarea
-        v-if="showDescriptionField"
         v-model="newTaskDescription"
         rows="2"
-        placeholder="Optional details for the next task you add"
-        class="mt-2 w-full resize-none rounded-lg border border-cream px-2.5 py-1.5 text-xs text-ink focus:outline-none"
+        placeholder="Exact spec, e.g. 3000K warm white bulbs"
+        class="mb-2 w-full resize-none rounded-lg border border-cream px-3 py-2 text-xs text-ink focus:outline-none"
       />
+      <p v-if="addError" class="mb-2 text-xs text-error-text">{{ addError }}</p>
+      <BaseButton full-width @click="addTask">+ Add task</BaseButton>
     </div>
   </div>
 </template>
