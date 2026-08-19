@@ -17,6 +17,7 @@ export interface Project {
   pendingInvitationUid: string | null
   pendingInvitationName: string | null
   pendingInvitationUsername: string | null
+  lastVerifiedPhotoUrl: string | null
   createdAt: number
   updatedAt: number
 }

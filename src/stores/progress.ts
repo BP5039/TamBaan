@@ -126,6 +126,14 @@ export const useProgressStore = defineStore('progress', {
         const tasksStore = useTasksStore()
         const task = tasksStore.tasks.find((t) => t.id === u.taskId)
         if (task) task.status = 'done'
+
+        const thumbUrl = u.images[0]?.thumb ?? null
+        if (thumbUrl) {
+          await updateDoc(doc(db, 'projects', projectId), {
+            lastVerifiedPhotoUrl: thumbUrl,
+            updatedAt: Date.now(),
+          })
+        }
       }
 
       const notificationsStore = useNotificationsStore()

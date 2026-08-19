@@ -103,6 +103,7 @@ export const useProjectsStore = defineStore('projects', {
         pendingInvitationUid: null,
         pendingInvitationName: null,
         pendingInvitationUsername: null,
+        lastVerifiedPhotoUrl: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
     }

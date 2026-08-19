@@ -19,6 +19,16 @@ function statusStyle(status: string) {
   return 'bg-pending-bg text-pending-text'
 }
 
+function statusLabel(status: string) {
+  if (status === 'active') return 'Active'
+  if (status === 'completed') return 'Completed'
+  return 'Pending'
+}
+
+function yearOf(dateStr: string) {
+  return dateStr ? new Date(dateStr).getFullYear() : ''
+}
+
 const roleLabel = computed(() =>
   authStore.profile?.role === 'homeowner' ? 'homeowner' : 'professional',
 )
@@ -31,21 +41,45 @@ const roleLabel = computed(() =>
 
     <p v-if="projectsStore.loading" class="py-10 text-center text-sm text-muted">Loading…</p>
 
-    <div v-else-if="projectsStore.myProjects.length" class="space-y-2">
+    <div v-else-if="projectsStore.myProjects.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <button
         v-for="p in projectsStore.myProjects"
         :key="p.id"
         type="button"
-        class="flex w-full items-center justify-between rounded-lg border border-cream bg-white p-3 text-left hover:border-primary/50"
+        class="overflow-hidden rounded-card border border-cream bg-white text-left hover:border-primary/50"
         @click="router.push(`/projects/${p.id}`)"
       >
-        <div>
-          <p class="text-sm text-ink">{{ p.name }}</p>
-          <p class="text-xs text-muted">{{ p.location }}</p>
+        <div class="relative aspect-[4/3] w-full bg-cream/60">
+          <img
+            v-if="p.lastVerifiedPhotoUrl"
+            :src="p.lastVerifiedPhotoUrl"
+            alt=""
+            class="h-full w-full object-cover"
+          />
+          <div v-else class="flex h-full w-full items-center justify-center text-xs text-muted">
+            No verified progress yet
+          </div>
+
+          <span
+            class="absolute left-2 top-2 rounded-full border border-cream bg-cream/90 px-2 py-0.5 text-[10px] font-medium text-muted"
+          >
+            {{ yearOf(p.plannedStartDate) }}
+          </span>
+          <span
+            class="absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-medium"
+            :class="statusStyle(p.status)"
+          >
+            {{ statusLabel(p.status) }}
+          </span>
         </div>
-        <span class="rounded-lg px-2 py-0.5 text-[10px] font-medium" :class="statusStyle(p.status)">
-          {{ p.status === 'active' ? 'Active' : p.status === 'completed' ? 'Completed' : 'Pending' }}
-        </span>
+        <div class="p-3">
+          <p class="mb-0.5 text-xs font-semibold text-ink">{{ p.name }}</p>
+          <p class="text-[11px] text-muted">{{ p.location }}</p>
+          <p v-if="p.description" class="line-clamp-3 text-xs text-ink/90">{{ p.description }}</p>
+          <p class="mt-1.5 text-[11px] text-muted">
+            {{ p.plannedStartDate }} → {{ p.plannedEndDate }}
+          </p>
+        </div>
       </button>
     </div>
 
