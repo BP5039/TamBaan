@@ -4,12 +4,20 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useDiscoveryStore } from '@/stores/discovery'
 import { useAuthModalStore } from '@/stores/authModal'
+import { onMounted } from 'vue'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const discoveryStore = useDiscoveryStore()
 const authModalStore = useAuthModalStore()
+
+const notificationsStore = useNotificationsStore()
+
+onMounted(async () => {
+  if (authStore.user) await notificationsStore.fetchNotifications(authStore.user.uid)
+})
 
 function isActive(names: string[]) {
   return typeof route.name === 'string' && names.includes(route.name)
@@ -99,6 +107,20 @@ function onSearchSubmit(e: Event) {
           "
         >
           My projects
+        </router-link>
+        <router-link
+          v-if="authStore.isLoggedIn"
+          to="/inbox"
+          class="relative text-sm font-medium pb-0.5"
+          :class="isActive(['inbox']) ? 'border-b-2 border-primary text-primary font-semibold' : 'text-muted hover:text-ink'"
+        >
+          Inbox
+          <span
+            v-if="notificationsStore.unreadCount > 0"
+            class="absolute -right-3 -top-2 min-w-[14px] rounded-full bg-error px-1 text-center text-[9px] font-bold text-white"
+          >
+            {{ notificationsStore.unreadCount }}
+          </span>
         </router-link>
         <router-link v-if="authStore.isLoggedIn" to="/profile" aria-label="My profile">
           <div

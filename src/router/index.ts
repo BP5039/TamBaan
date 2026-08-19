@@ -31,6 +31,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresProfile: true },
     },
     {
+      path: '/inbox',
+      name: 'inbox',
+      component: () => import('@/views/InboxView.vue'),
+      meta: { requiresAuth: true, requiresProfile: true },
+    },
+    {
       path: '/projects/:id',
       name: 'project-hub',
       component: () => import('@/views/ProjectHubView.vue'),

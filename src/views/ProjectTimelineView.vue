@@ -59,13 +59,14 @@ async function handleSaveProgress(payload: {
   uploading.value = true
   try {
     await progressStore.addUpdate(
-      projectId.value,
-      payload.taskId,
-      payload.taskTitle,
-      payload.file,
-      payload.description,
-      payload.exifTimestamp,
-      payload.exifDevice,
+        projectId.value,
+        project.value!.homeownerUid,
+        payload.taskId,
+        payload.taskTitle,
+        payload.file,
+        payload.description,
+        payload.exifTimestamp,
+        payload.exifDevice,
     )
     showAddModal.value = false
   } catch (err) {
@@ -77,7 +78,8 @@ async function handleSaveProgress(payload: {
 }
 
 async function verify(updateId: string) {
-  await progressStore.verifyUpdate(projectId.value, updateId)
+  const update = progressStore.updates.find((u) => u.id === updateId)
+  await progressStore.verifyUpdate(projectId.value, updateId, project.value!.contractorUid!, update?.taskTitle ?? '')
 }
 
 function startSendBack(updateId: string) {
@@ -95,7 +97,14 @@ async function confirmSendBack(updateId: string) {
     sendBackError.value = 'Explain what needs fixing.'
     return
   }
-  await progressStore.sendBackUpdate(projectId.value, updateId, sendBackReason.value.trim())
+  const update = progressStore.updates.find((u) => u.id === updateId)
+  await progressStore.sendBackUpdate(
+    projectId.value,
+    updateId,
+    sendBackReason.value.trim(),
+    project.value!.contractorUid!,
+    update?.taskTitle ?? '',
+  )
   sendBackTargetId.value = null
 }
 
