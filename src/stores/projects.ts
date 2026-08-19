@@ -12,6 +12,7 @@ import {
 import { db } from '@/firebase/config'
 import type { Project } from '@/types/project'
 import type { UserProfile } from '@/types'
+import { useNotificationsStore } from '@/stores/notifications'
 
 interface ProjectsState {
   myProjects: Project[]
@@ -112,21 +113,34 @@ export const useProjectsStore = defineStore('projects', {
     },
 
     async inviteContractor(
-      projectId: string,
-      contractorUid: string,
-      contractorName: string,
-      contractorUsername: string,
+    projectId: string,
+    contractorUid: string,
+    contractorName: string,
+    contractorUsername: string,
     ) {
-      await updateDoc(doc(db, 'projects', projectId), {
+    await updateDoc(doc(db, 'projects', projectId), {
         pendingInvitationUid: contractorUid,
         pendingInvitationName: contractorName,
         pendingInvitationUsername: contractorUsername,
         updatedAt: Date.now(),
-      })
+    })
+
+    const project = this.myProjects.find((p) => p.id === projectId) ?? this.currentProject
+    if (project) {
+        const notificationsStore = useNotificationsStore()
+        await notificationsStore.notify(
+        contractorUid,
+        'invitation_received',
+        'New project invitation',
+        `${project.homeownerName} invited you to "${project.name}"`,
+        projectId,
+        project.name,
+        )
+    }
     },
 
     async acceptInvitation(project: Project) {
-      await updateDoc(doc(db, 'projects', project.id), {
+    await updateDoc(doc(db, 'projects', project.id), {
         contractorUid: project.pendingInvitationUid,
         contractorName: project.pendingInvitationName,
         contractorUsername: project.pendingInvitationUsername,
@@ -135,18 +149,38 @@ export const useProjectsStore = defineStore('projects', {
         pendingInvitationUsername: null,
         status: 'active',
         updatedAt: Date.now(),
-      })
-      this.pendingInvitations = this.pendingInvitations.filter((p) => p.id !== project.id)
+    })
+    this.pendingInvitations = this.pendingInvitations.filter((p) => p.id !== project.id)
+
+    const notificationsStore = useNotificationsStore()
+    await notificationsStore.notify(
+        project.homeownerUid,
+        'invitation_accepted',
+        'Invitation accepted',
+        `${project.pendingInvitationName} accepted your invite — "${project.name}"`,
+        project.id,
+        project.name,
+    )
     },
 
     async declineInvitation(project: Project) {
-      await updateDoc(doc(db, 'projects', project.id), {
+    await updateDoc(doc(db, 'projects', project.id), {
         pendingInvitationUid: null,
         pendingInvitationName: null,
         pendingInvitationUsername: null,
         updatedAt: Date.now(),
-      })
-      this.pendingInvitations = this.pendingInvitations.filter((p) => p.id !== project.id)
+    })
+    this.pendingInvitations = this.pendingInvitations.filter((p) => p.id !== project.id)
+
+    const notificationsStore = useNotificationsStore()
+    await notificationsStore.notify(
+        project.homeownerUid,
+        'invitation_declined',
+        'Invitation declined',
+        `${project.pendingInvitationName} declined your invite — "${project.name}"`,
+        project.id,
+        project.name,
+    )
     },
   },
 })

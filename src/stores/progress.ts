@@ -11,6 +11,7 @@ import {
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/firebase/config'
 import { createThumbnail } from '@/utils/imageResize'
+import { useNotificationsStore } from '@/stores/notifications'
 import type { ProgressUpdate } from '@/types/project'
 
 interface ProgressState {
@@ -47,6 +48,7 @@ export const useProgressStore = defineStore('progress', {
 
     async addUpdate(
       projectId: string,
+      homeownerUid: string,
       taskId: string,
       taskTitle: string,
       file: File,
@@ -89,14 +91,23 @@ export const useProgressStore = defineStore('progress', {
       const docRef = await addDoc(collection(db, 'projects', projectId, 'updates'), payload)
       this.updates.unshift({ id: docRef.id, ...payload })
 
-      // Mark the task as having real progress, locking its edit/delete per Day 1's rule.
       await updateDoc(doc(db, 'projects', projectId, 'tasks', taskId), {
         hasProgress: true,
         updatedAt: Date.now(),
       })
+
+      const notificationsStore = useNotificationsStore()
+      await notificationsStore.notify(
+        homeownerUid,
+        'progress_submitted',
+        'New progress to review',
+        `A new update was submitted on "${taskTitle}"`,
+        projectId,
+        '',
+      )
     },
 
-    async verifyUpdate(projectId: string, updateId: string) {
+    async verifyUpdate(projectId: string, updateId: string, contractorUid: string, taskTitle: string) {
       await updateDoc(doc(db, 'projects', projectId, 'updates', updateId), {
         status: 'verified',
         sentBackReason: null,
@@ -107,9 +118,25 @@ export const useProgressStore = defineStore('progress', {
         u.status = 'verified'
         u.sentBackReason = null
       }
+
+      const notificationsStore = useNotificationsStore()
+      await notificationsStore.notify(
+        contractorUid,
+        'progress_verified',
+        'Update verified',
+        `Your update on "${taskTitle}" was confirmed`,
+        projectId,
+        '',
+      )
     },
 
-    async sendBackUpdate(projectId: string, updateId: string, reason: string) {
+    async sendBackUpdate(
+      projectId: string,
+      updateId: string,
+      reason: string,
+      contractorUid: string,
+      taskTitle: string,
+    ) {
       await updateDoc(doc(db, 'projects', projectId, 'updates', updateId), {
         status: 'sent_back',
         sentBackReason: reason,
@@ -120,6 +147,16 @@ export const useProgressStore = defineStore('progress', {
         u.status = 'sent_back'
         u.sentBackReason = reason
       }
+
+      const notificationsStore = useNotificationsStore()
+      await notificationsStore.notify(
+        contractorUid,
+        'progress_sent_back',
+        'Update sent back',
+        `Your update on "${taskTitle}" needs changes: ${reason}`,
+        projectId,
+        '',
+      )
     },
   },
 })
