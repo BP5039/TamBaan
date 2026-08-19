@@ -5,6 +5,7 @@ export type NotificationType =
   | 'progress_submitted'
   | 'progress_verified'
   | 'progress_sent_back'
+  | 'project_completed'
 
 export interface Notification {
   id: string

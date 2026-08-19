@@ -1,5 +1,14 @@
 export type ProjectStatus = 'pending' | 'active' | 'completed'
 
+export interface ProjectReview {
+  workQuality: number
+  communication: number
+  timeliness: number
+  overall: number
+  comment: string
+  createdAt: number
+}
+
 export interface Project {
   id: string
   name: string
@@ -18,6 +27,7 @@ export interface Project {
   pendingInvitationName: string | null
   pendingInvitationUsername: string | null
   lastVerifiedPhotoUrl: string | null
+  review: ProjectReview | null
   createdAt: number
   updatedAt: number
 }

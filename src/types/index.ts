@@ -58,5 +58,6 @@ export interface PortfolioItem {
   year: number
   location: string
   source: 'manual' | 'collaboration'
+  projectId: string | null
   createdAt: number
 }
