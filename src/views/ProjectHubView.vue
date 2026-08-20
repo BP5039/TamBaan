@@ -27,6 +27,10 @@ const isParticipant = computed(() => {
   )
 })
 
+// A completed project is meant to be browsable from the professional's
+// portfolio by anyone, not just the two people who worked on it.
+const canView = computed(() => isParticipant.value || project.value?.status === 'completed')
+
 const isHomeowner = computed(() => project.value?.homeownerUid === authStore.user?.uid)
 
 const isPendingInvitee = computed(
@@ -99,7 +103,7 @@ onMounted(load)
     <p v-if="projectsStore.loading" class="py-10 text-center text-sm text-muted">Loading…</p>
 
     <p
-      v-else-if="!project || !isParticipant"
+      v-else-if="!project || !canView"
       class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
     >
       This project doesn't exist, or you don't have access to it.
