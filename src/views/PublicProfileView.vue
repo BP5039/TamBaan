@@ -152,7 +152,12 @@ watch(username, load)
                   <div v-for="group in portfolioStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
                     <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
                     <div class="grid grid-cols-2 gap-4">
-                      <PortfolioItemCard v-for="item in group.items" :key="item.id" :item="item" />
+                      <PortfolioItemCard
+                        v-for="item in group.items"
+                        :key="item.id"
+                        :item="item"
+                        @open-project="(id) => router.push(`/projects/${id}`)"
+                      />
                     </div>
                   </div>
                 </div>

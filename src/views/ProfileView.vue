@@ -206,6 +206,7 @@ async function logout() {
                       :item="item"
                       can-delete
                       @delete="handleDeleteItem(item.id)"
+                      @open-project="(id) => router.push(`/projects/${id}`)"
                     />
                   </div>
                 </div>

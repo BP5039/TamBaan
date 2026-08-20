@@ -4,7 +4,7 @@ import type { PortfolioItem } from '@/types'
 import PortfolioLightbox from '@/components/profile/PortfolioLightbox.vue'
 
 const props = defineProps<{ item: PortfolioItem; canDelete?: boolean }>()
-defineEmits<{ delete: [] }>()
+const emit = defineEmits<{ delete: []; 'open-project': [projectId: string] }>()
 
 const index = ref(0)
 const lightboxOpen = ref(false)
@@ -32,15 +32,23 @@ function prev() {
 function next() {
   index.value = (index.value + 1) % props.item.images.length
 }
+
+function onImageClick() {
+  if (props.item.source === 'collaboration' && props.item.projectId) {
+    emit('open-project', props.item.projectId)
+  } else {
+    lightboxOpen.value = true
+  }
+}
 </script>
 
 <template>
   <div class="overflow-hidden rounded-card border border-cream bg-white">
-    <div class="relative aspect-[4/3] w-full cursor-pointer bg-cream/60" @click="lightboxOpen = true">
+    <div class="relative aspect-[4/3] w-full cursor-pointer bg-cream/60" @click="onImageClick">
       <img :src="item.images[index]?.thumb" alt="" class="h-full w-full object-cover" />
 
       <span class="absolute left-2 top-2 rounded-full border border-cream bg-cream/90 px-2 py-0.5 text-[10px] font-medium text-muted">
-        Past work
+        {{ item.source === 'collaboration' ? 'Completed project' : 'Past work' }}
       </span>
 
       <template v-if="hasMultiple">
