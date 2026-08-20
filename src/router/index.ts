@@ -40,19 +40,16 @@ const router = createRouter({
       path: '/projects/:id',
       name: 'project-hub',
       component: () => import('@/views/ProjectHubView.vue'),
-      meta: { requiresAuth: true, requiresProfile: true },
     },
     {
       path: '/projects/:id/tasks',
       name: 'project-tasks',
       component: () => import('@/views/ProjectTasksView.vue'),
-      meta: { requiresAuth: true, requiresProfile: true },
     },
     {
       path: '/projects/:id/timeline',
       name: 'project-timeline',
       component: () => import('@/views/ProjectTimelineView.vue'),
-      meta: { requiresAuth: true, requiresProfile: true },
     },
     {
       path: '/discover',
