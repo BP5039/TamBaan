@@ -37,10 +37,14 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
+      // A completed project is meant to be browsable by anyone visiting the
+      // professional's portfolio — that's the whole point of publishing it.
+      // Active/pending projects stay strictly participant-only.
       allow read: if request.auth != null && (
         request.auth.uid == resource.data.homeownerUid ||
         request.auth.uid == resource.data.contractorUid ||
-        request.auth.uid == resource.data.pendingInvitationUid
+        request.auth.uid == resource.data.pendingInvitationUid ||
+        resource.data.status == 'completed'
       );
       allow create: if request.auth != null &&
         request.auth.uid == request.resource.data.homeownerUid;
@@ -54,7 +58,8 @@ service cloud.firestore {
       match /tasks/{taskId} {
         allow read: if request.auth != null && (
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
-          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid ||
+          get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'completed'
         );
         allow create: if request.auth != null &&
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid;
@@ -70,7 +75,8 @@ service cloud.firestore {
       match /updates/{updateId} {
         allow read: if request.auth != null && (
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
-          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid ||
+          get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'completed'
         );
         allow create: if request.auth != null &&
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid;
