@@ -5,7 +5,7 @@ import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import StarRatingInput from '@/components/ui/StarRatingInput.vue'
 
-const props = defineProps<{
+defineProps<{
   saving: boolean
   error?: string
 }>()

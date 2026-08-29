@@ -14,7 +14,7 @@ import {
   validateImageFile,
 } from '@/constants/fileValidation'
 
-const props = defineProps<{
+defineProps<{
   saving: boolean
   uploadError?: string
 }>()
