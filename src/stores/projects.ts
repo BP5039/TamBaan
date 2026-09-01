@@ -12,11 +12,36 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore'
-import { db } from '@/firebase/config'
+import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
+import { db, storage } from '@/firebase/config'
+import { createThumbnail } from '@/utils/imageResize'
 import type { Project, ProjectReview } from '@/types/project'
 import type { PortfolioImage, PortfolioItem, UserProfile } from '@/types'
 import { useNotificationsStore } from '@/stores/notifications'
 import { syncPreview } from '@/stores/portfolio'
+
+async function uploadReferenceImage(projectId: string, file: File, index: number): Promise<PortfolioImage> {
+  const stamp = `${Date.now()}-${index}`
+  const fullRef = ref(storage, `projects/${projectId}/reference/${stamp}-full-${file.name}`)
+
+  let thumbBlob: Blob | null = null
+  try {
+    thumbBlob = await createThumbnail(file)
+  } catch {
+    thumbBlob = null
+  }
+
+  if (!thumbBlob) {
+    await uploadBytes(fullRef, file)
+    const full = await getDownloadURL(fullRef)
+    return { full, thumb: full }
+  }
+
+  const thumbRef = ref(storage, `projects/${projectId}/reference/${stamp}-thumb-${file.name}.jpg`)
+  await Promise.all([uploadBytes(fullRef, file), uploadBytes(thumbRef, thumbBlob)])
+  const [full, thumb] = await Promise.all([getDownloadURL(fullRef), getDownloadURL(thumbRef)])
+  return { full, thumb }
+}
 
 interface ProjectsState {
   myProjects: Project[]
@@ -108,6 +133,7 @@ export const useProjectsStore = defineStore('projects', {
         plannedStartDate: string
         plannedEndDate: string
     },
+    files: File[] = [],
     ) {
     const payload = {
         ...data,
@@ -122,13 +148,13 @@ export const useProjectsStore = defineStore('projects', {
         pendingInvitationName: null,
         pendingInvitationUsername: null,
         lastVerifiedPhotoUrl: null,
+        referenceImages: [] as PortfolioImage[],
         review: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
     }
     const docRef = await addDoc(collection(db, 'projects'), payload)
-    const project = { id: docRef.id, ...payload } as Project
-    this.myProjects.unshift(project)
+    let project = { id: docRef.id, ...payload } as Project
 
     // Shared only with whoever ends up as the accepted contractor — never public.
     await setDoc(doc(db, 'projects', docRef.id, 'private', 'contact'), {
@@ -137,6 +163,17 @@ export const useProjectsStore = defineStore('projects', {
       facebookId: homeowner.facebookId ?? null,
     })
 
+    // Uploaded after the doc exists — Storage rules verify the project's
+    // status/owner by reading the Firestore doc, so it has to be there first.
+    if (files.length) {
+      const referenceImages = await Promise.all(
+        files.map((f, i) => uploadReferenceImage(docRef.id, f, i)),
+      )
+      await updateDoc(doc(db, 'projects', docRef.id), { referenceImages, updatedAt: Date.now() })
+      project = { ...project, referenceImages }
+    }
+
+    this.myProjects.unshift(project)
     return project
     },
 
@@ -209,6 +246,54 @@ export const useProjectsStore = defineStore('projects', {
         project.id,
         project.name,
     )
+    },
+
+    /**
+     * Homeowner-only. Only succeeds while the project is still pending with
+     * no invite out — the Firestore rule enforces the same lock, so this
+     * isn't just a UI-level restriction.
+     */
+    async editProject(
+      project: Project,
+      data: {
+        name: string
+        description: string
+        location: string
+        plannedStartDate: string
+        plannedEndDate: string
+      },
+      newFiles: File[],
+      keepImages: PortfolioImage[],
+      removedImages: PortfolioImage[],
+    ) {
+      const uploaded = newFiles.length
+        ? await Promise.all(newFiles.map((f, i) => uploadReferenceImage(project.id, f, i)))
+        : []
+      const referenceImages = [...keepImages, ...uploaded]
+
+      await updateDoc(doc(db, 'projects', project.id), {
+        ...data,
+        referenceImages,
+        updatedAt: Date.now(),
+      })
+
+      if (this.currentProject?.id === project.id) {
+        Object.assign(this.currentProject, data, { referenceImages })
+      }
+      const listed = this.myProjects.find((p) => p.id === project.id)
+      if (listed) Object.assign(listed, data, { referenceImages })
+
+      // Best-effort cleanup — a failed delete shouldn't block the save the user is waiting on.
+      for (const img of removedImages) {
+        for (const url of new Set([img.thumb, img.full])) {
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            await deleteObject(ref(storage, url))
+          } catch {
+            // file may already be gone
+          }
+        }
+      }
     },
 
     /**
