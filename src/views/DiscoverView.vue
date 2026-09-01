@@ -11,8 +11,8 @@ const discoveryStore = useDiscoveryStore()
 const ALL_PROVINCES = 'All provinces'
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: 'newest', label: 'Newest members' },
-  { value: 'oldest', label: 'Oldest members' },
+  { value: 'newest', label: 'Newest professionals' },
+  { value: 'oldest', label: 'Oldest professionals' },
   { value: 'mostWork', label: 'Most work shown' },
   { value: 'leastWork', label: 'Least work shown' },
   { value: 'highestRated', label: 'Highest rated' },
