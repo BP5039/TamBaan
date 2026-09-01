@@ -8,6 +8,7 @@ import {
   orderBy,
   query,
   runTransaction,
+  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore'
@@ -128,6 +129,14 @@ export const useProjectsStore = defineStore('projects', {
     const docRef = await addDoc(collection(db, 'projects'), payload)
     const project = { id: docRef.id, ...payload } as Project
     this.myProjects.unshift(project)
+
+    // Shared only with whoever ends up as the accepted contractor — never public.
+    await setDoc(doc(db, 'projects', docRef.id, 'private', 'contact'), {
+      phone: homeowner.phone,
+      lineId: homeowner.lineId ?? null,
+      facebookId: homeowner.facebookId ?? null,
+    })
+
     return project
     },
 

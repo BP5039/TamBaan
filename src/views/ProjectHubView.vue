@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/firebase/config'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
 import { useTasksStore } from '@/stores/tasks'
@@ -27,15 +29,32 @@ const isParticipant = computed(() => {
   )
 })
 
-// A completed project is meant to be browsable from the professional's
-// portfolio by anyone, not just the two people who worked on it.
 const canView = computed(() => isParticipant.value || project.value?.status === 'completed')
 
 const isHomeowner = computed(() => project.value?.homeownerUid === authStore.user?.uid)
+const isContractor = computed(() => project.value?.contractorUid === authStore.user?.uid)
 
 const isPendingInvitee = computed(
   () => !!project.value?.pendingInvitationUid && project.value.pendingInvitationUid === authStore.user?.uid,
 )
+
+interface HomeownerContact {
+  phone: string
+  lineId: string | null
+  facebookId: string | null
+}
+const homeownerContact = ref<HomeownerContact | null>(null)
+
+async function loadHomeownerContact() {
+  homeownerContact.value = null
+  if (!isContractor.value || !project.value) return
+  try {
+    const snap = await getDoc(doc(db, 'projects', project.value.id, 'private', 'contact'))
+    if (snap.exists()) homeownerContact.value = snap.data() as HomeownerContact
+  } catch (err) {
+    console.error('loadHomeownerContact failed:', err)
+  }
+}
 
 const respondLoading = computed(() => projectsStore.loading)
 
@@ -93,10 +112,10 @@ async function load() {
   if (projectsStore.currentProject) {
     await tasksStore.fetchTasks(projectId.value)
   }
+  await loadHomeownerContact()
 }
 
 watch(projectId, load, { immediate: true })
-
 </script>
 
 <template>
@@ -135,6 +154,12 @@ watch(projectId, load, { immediate: true })
         <div v-if="project.contractorUid" class="mb-4 rounded-lg border border-cream p-3">
           <p class="text-xs text-muted">Contractor</p>
           <p class="text-sm font-medium text-ink">{{ project.contractorName }}</p>
+        </div>
+        <div v-if="isContractor && homeownerContact" class="mb-4 rounded-lg border border-cream p-3">
+          <p class="mb-1 text-xs text-muted">Homeowner contact</p>
+          <p class="text-sm text-ink">{{ homeownerContact.phone }}</p>
+          <p v-if="homeownerContact.lineId" class="text-xs text-ink">LINE: {{ homeownerContact.lineId }}</p>
+          <p v-if="homeownerContact.facebookId" class="text-xs text-ink">FB: {{ homeownerContact.facebookId }}</p>
         </div>
         <div
           v-else-if="isPendingInvitee"
