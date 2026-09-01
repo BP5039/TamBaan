@@ -253,7 +253,7 @@ async function logout() {
     <CreateProjectModal
       v-if="showCreateProjectModal"
       @close="showCreateProjectModal = false"
-      @created="onProjectCreated"
+      @saved="onProjectCreated"
     />
   </div>
 </template>

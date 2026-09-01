@@ -9,6 +9,8 @@ import { useTasksStore } from '@/stores/tasks'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import CompleteProjectModal from '@/components/projects/CompleteProjectModal.vue'
+import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
+import PortfolioLightbox from '@/components/profile/PortfolioLightbox.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,6 +31,8 @@ const isParticipant = computed(() => {
   )
 })
 
+// A completed project is meant to be browsable from the professional's
+// portfolio by anyone, not just the two people who worked on it.
 const canView = computed(() => isParticipant.value || project.value?.status === 'completed')
 
 const isHomeowner = computed(() => project.value?.homeownerUid === authStore.user?.uid)
@@ -37,6 +41,14 @@ const isContractor = computed(() => project.value?.contractorUid === authStore.u
 const isPendingInvitee = computed(
   () => !!project.value?.pendingInvitationUid && project.value.pendingInvitationUid === authStore.user?.uid,
 )
+
+// Same lock the Firestore rule enforces server-side — this just controls the button's visibility.
+const canEditDetails = computed(
+  () => isHomeowner.value && project.value?.status === 'pending' && !project.value?.pendingInvitationUid,
+)
+const showEditModal = ref(false)
+
+const lightboxIndex = ref<number | null>(null)
 
 interface HomeownerContact {
   phone: string
@@ -132,20 +144,43 @@ watch(projectId, load, { immediate: true })
     <template v-else>
       <div class="mb-4 flex items-center justify-between">
         <h1 class="text-xl font-semibold text-ink">{{ project.name }}</h1>
-        <span
-          class="rounded-lg px-2.5 py-1 text-xs font-medium"
-          :class="
-            statusLabel.variant === 'success'
-              ? 'bg-success-bg text-success-text'
-              : 'bg-pending-bg text-pending-text'
-          "
-        >
-          {{ statusLabel.text }}
-        </span>
+        <div class="flex items-center gap-2">
+          <button
+            v-if="canEditDetails"
+            type="button"
+            class="text-xs font-medium text-primary underline"
+            @click="showEditModal = true"
+          >
+            Edit
+          </button>
+          <span
+            class="rounded-lg px-2.5 py-1 text-xs font-medium"
+            :class="
+              statusLabel.variant === 'success'
+                ? 'bg-success-bg text-success-text'
+                : 'bg-pending-bg text-pending-text'
+            "
+          >
+            {{ statusLabel.text }}
+          </span>
+        </div>
       </div>
 
       <div class="rounded-card border border-cream bg-white p-6">
         <p v-if="project.description" class="mb-4 text-sm text-ink/90">{{ project.description }}</p>
+
+        <div v-if="project.referenceImages?.length" class="mb-4 flex gap-1.5">
+          <button
+            v-for="(img, i) in project.referenceImages"
+            :key="i"
+            type="button"
+            class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-cream"
+            @click="lightboxIndex = i"
+          >
+            <img :src="img.thumb" alt="" class="h-full w-full object-cover" />
+          </button>
+        </div>
+
         <p class="mb-1 text-xs text-muted">
           Planned: {{ project.plannedStartDate }} → {{ project.plannedEndDate }}
         </p>
@@ -255,6 +290,20 @@ watch(projectId, load, { immediate: true })
       :error="completeError"
       @close="showCompleteModal = false"
       @save="handleComplete"
+    />
+
+    <CreateProjectModal
+      v-if="showEditModal && project"
+      :project="project"
+      @close="showEditModal = false"
+      @saved="showEditModal = false"
+    />
+
+    <PortfolioLightbox
+      v-if="lightboxIndex !== null && project?.referenceImages"
+      :images="project.referenceImages"
+      :start-index="lightboxIndex"
+      @close="lightboxIndex = null"
     />
   </div>
 </template>
