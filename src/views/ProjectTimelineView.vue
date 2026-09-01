@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
@@ -40,7 +40,7 @@ async function load() {
   await progressStore.fetchUpdates(projectId.value)
 }
 
-onMounted(load)
+watch(projectId, load, { immediate: true })
 
 function openAddModal() {
   modalUploadError.value = ''
