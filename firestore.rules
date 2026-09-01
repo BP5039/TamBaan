@@ -43,9 +43,42 @@ service cloud.firestore {
       allow create: if request.auth != null &&
         request.auth.uid == request.resource.data.homeownerUid;
       allow update: if request.auth != null && (
-        request.auth.uid == resource.data.homeownerUid ||
-        request.auth.uid == resource.data.contractorUid ||
-        request.auth.uid == resource.data.pendingInvitationUid
+        // Homeowner: edit project details — only while no invite is out yet.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['name', 'description', 'location', 'plannedStartDate', 'plannedEndDate', 'referenceImages', 'updatedAt']
+          ) &&
+          request.auth.uid == resource.data.homeownerUid &&
+          resource.data.status == 'pending' &&
+          resource.data.pendingInvitationUid == null
+        ) ||
+        // Homeowner: invite a contractor.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['pendingInvitationUid', 'pendingInvitationName', 'pendingInvitationUsername', 'updatedAt']
+          ) &&
+          request.auth.uid == resource.data.homeownerUid
+        ) ||
+        // Homeowner: verify a progress photo, or mark the project complete.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['lastVerifiedPhotoUrl', 'status', 'review', 'updatedAt']
+          ) &&
+          request.auth.uid == resource.data.homeownerUid
+        ) ||
+        // Invited professional: accept (sets contractor, clears invite) or decline (just clears invite).
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['contractorUid', 'contractorName', 'contractorUsername', 'pendingInvitationUid', 'pendingInvitationName', 'pendingInvitationUsername', 'status', 'updatedAt']
+          ) &&
+          request.auth.uid == resource.data.pendingInvitationUid
+        ) ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['pendingInvitationUid', 'pendingInvitationName', 'pendingInvitationUsername', 'updatedAt']
+          ) &&
+          request.auth.uid == resource.data.pendingInvitationUid
+        )
       );
       allow delete: if false;
 
