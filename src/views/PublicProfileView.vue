@@ -112,13 +112,15 @@ watch(username, load)
               {{ formatLastSeen(publicProfileStore.profile.lastActiveAt) }}
             </p>
 
-            <p class="mt-2 text-xs text-muted">{{ publicProfileStore.profile.phone }}</p>
-            <p v-if="publicProfileStore.profile.lineId" class="text-xs text-muted">
-              LINE: {{ publicProfileStore.profile.lineId }}
-            </p>
-            <p v-if="publicProfileStore.profile.facebookId" class="text-xs text-muted">
-              FB: {{ publicProfileStore.profile.facebookId }}
-            </p>
+            <template v-if="isProfessional">
+              <p class="mt-2 text-xs text-muted">{{ publicProfileStore.profile.phone }}</p>
+              <p v-if="publicProfileStore.profile.lineId" class="text-xs text-muted">
+                LINE: {{ publicProfileStore.profile.lineId }}
+              </p>
+              <p v-if="publicProfileStore.profile.facebookId" class="text-xs text-muted">
+                FB: {{ publicProfileStore.profile.facebookId }}
+              </p>
+            </template>
             <p class="text-xs text-muted">{{ publicProfileStore.profile.province }}</p>
 
             <div

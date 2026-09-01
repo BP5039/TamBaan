@@ -4,10 +4,6 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if true;
       allow create: if request.auth != null && request.auth.uid == userId;
-      // Full profile edits stay owner-only. A completed-project review also needs to
-      // update the reviewed professional's aggregate rating and portfolio-preview stats —
-      // those are narrow, system-computed fields, so any authenticated user may touch
-      // *only* this specific field set, never the rest of the profile.
       allow update: if request.auth != null && (
         request.auth.uid == userId ||
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(
@@ -37,14 +33,12 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
-      // A completed project is meant to be browsable by anyone visiting the
-      // professional's portfolio — that's the whole point of publishing it.
-      // Active/pending projects stay strictly participant-only.
-      allow read: if request.auth != null && (
-        request.auth.uid == resource.data.homeownerUid ||
-        request.auth.uid == resource.data.contractorUid ||
-        request.auth.uid == resource.data.pendingInvitationUid ||
-        resource.data.status == 'completed'
+      allow read: if resource.data.status == 'completed' || (
+        request.auth != null && (
+          request.auth.uid == resource.data.homeownerUid ||
+          request.auth.uid == resource.data.contractorUid ||
+          request.auth.uid == resource.data.pendingInvitationUid
+        )
       );
       allow create: if request.auth != null &&
         request.auth.uid == request.resource.data.homeownerUid;
@@ -56,10 +50,11 @@ service cloud.firestore {
       allow delete: if false;
 
       match /tasks/{taskId} {
-        allow read: if request.auth != null && (
-          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
-          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid ||
-          get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'completed'
+        allow read: if get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'completed' || (
+          request.auth != null && (
+            request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
+            request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid
+          )
         );
         allow create: if request.auth != null &&
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid;
@@ -73,14 +68,28 @@ service cloud.firestore {
       }
 
       match /updates/{updateId} {
-        allow read: if request.auth != null && (
-          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
-          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid ||
-          get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'completed'
+        allow read: if get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'completed' || (
+          request.auth != null && (
+            request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
+            request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid
+          )
         );
         allow create: if request.auth != null &&
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid;
         allow update: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid;
+        allow delete: if false;
+      }
+
+      // Homeowner contact info, shared only with the accepted contractor on this
+      // specific project. Deliberately excluded from the "completed = public" read
+      // rule above — this never becomes public, even after the project finishes.
+      match /private/{docId} {
+        allow read: if request.auth != null && (
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.contractorUid
+        );
+        allow create, update: if request.auth != null &&
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid;
         allow delete: if false;
       }
