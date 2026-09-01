@@ -27,6 +27,7 @@ export interface Project {
   pendingInvitationName: string | null
   pendingInvitationUsername: string | null
   lastVerifiedPhotoUrl: string | null
+  referenceImages: { thumb: string; full: string }[]
   review: ProjectReview | null
   createdAt: number
   updatedAt: number
