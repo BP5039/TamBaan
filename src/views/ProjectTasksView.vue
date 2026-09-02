@@ -109,7 +109,13 @@ async function addTask() {
     return
   }
   try {
-    await tasksStore.addTask(projectId.value, newTaskTitle.value.trim(), newTaskDescription.value.trim())
+    await tasksStore.addTask(
+      projectId.value,
+      newTaskTitle.value.trim(),
+      newTaskDescription.value.trim(),
+      project.value?.contractorUid ?? null,
+      project.value?.name ?? '',
+    )
     newTaskTitle.value = ''
     newTaskDescription.value = ''
   } catch (err) {

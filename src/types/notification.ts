@@ -2,11 +2,12 @@ export type NotificationType =
   | 'invitation_received'
   | 'invitation_accepted'
   | 'invitation_declined'
+  | 'task_added'
   | 'progress_submitted'
   | 'progress_verified'
   | 'progress_sent_back'
   | 'project_completed'
-
+  
 export interface Notification {
   id: string
   recipientUid: string

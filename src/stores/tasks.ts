@@ -10,6 +10,7 @@ import {
   updateDoc,
 } from 'firebase/firestore'
 import { db } from '@/firebase/config'
+import { useNotificationsStore } from '@/stores/notifications'
 import type { ProjectTask, TaskStatus } from '@/types/project'
 
 interface TasksState {
@@ -40,7 +41,13 @@ export const useTasksStore = defineStore('tasks', {
       }
     },
 
-    async addTask(projectId: string, title: string, description: string) {
+        async addTask(
+      projectId: string,
+      title: string,
+      description: string,
+      contractorUid: string | null,
+      projectName: string,
+    ) {
       const payload = {
         title,
         description,
@@ -51,6 +58,18 @@ export const useTasksStore = defineStore('tasks', {
       }
       const docRef = await addDoc(collection(db, 'projects', projectId, 'tasks'), payload)
       this.tasks.push({ id: docRef.id, ...payload })
+
+      if (contractorUid) {
+        const notificationsStore = useNotificationsStore()
+        await notificationsStore.notify(
+          contractorUid,
+          'task_added',
+          'New task added',
+          `A new task was added: "${title}"`,
+          projectId,
+          projectName,
+        )
+      }
     },
 
     async editTask(projectId: string, taskId: string, title: string, description: string) {
