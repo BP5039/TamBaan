@@ -4,7 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
 import { useTasksStore } from '@/stores/tasks'
+import { useProgressStore } from '@/stores/progress'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import AddProgressModal from '@/components/projects/AddProgressModal.vue'
 import type { TaskStatus } from '@/types/project'
 
 const route = useRoute()
@@ -17,6 +19,8 @@ const projectId = computed(() => route.params.id as string)
 const project = computed(() => projectsStore.currentProject)
 
 const isHomeowner = computed(() => project.value?.homeownerUid === authStore.user?.uid)
+const isContractor = computed(() => project.value?.contractorUid === authStore.user?.uid)
+const progressStore = useProgressStore()
 
 const newTaskTitle = ref('')
 const newTaskDescription = ref('')
@@ -41,6 +45,48 @@ function statusStyle(status: TaskStatus) {
   if (status === 'awaiting_review') return 'bg-pending-bg text-pending-text'
   if (status === 'sent_back') return 'bg-error-bg text-error-text'
   return 'bg-cream text-muted'
+}
+
+const showUploadModal = ref(false)
+const uploadTaskId = ref('')
+const uploading = ref(false)
+const modalUploadError = ref('')
+
+function openUploadFor(taskId: string) {
+  uploadTaskId.value = taskId
+  modalUploadError.value = ''
+  showUploadModal.value = true
+}
+
+async function handleSaveProgress(payload: {
+  taskId: string
+  taskTitle: string
+  file: File
+  description: string
+  exifTimestamp: number | null
+  exifDevice: string | null
+}) {
+  if (!project.value) return
+  modalUploadError.value = ''
+  uploading.value = true
+  try {
+    await progressStore.addUpdate(
+      projectId.value,
+      project.value.homeownerUid,
+      payload.taskId,
+      payload.taskTitle,
+      payload.file,
+      payload.description,
+      payload.exifTimestamp,
+      payload.exifDevice,
+    )
+    showUploadModal.value = false
+  } catch (err) {
+    console.error('addUpdate failed:', err)
+    modalUploadError.value = 'Upload failed. Check your connection and try again.'
+  } finally {
+    uploading.value = false
+  }
 }
 
 async function load() {
@@ -159,6 +205,18 @@ async function deleteTask(taskId: string) {
               {{ STATUS_LABELS[task.status] }}
             </span>
 
+            <button
+              v-if="isContractor && (task.status === 'not_started' || task.status === 'sent_back')"
+              type="button"
+              class="flex items-center gap-1 rounded-lg border border-cream px-2 py-1 text-xs font-medium text-ink hover:bg-cream/40"
+              @click="openUploadFor(task.id)"
+            >
+              <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V4.5m0 0L7 9.5m5-5l5 5M4.5 19.5h15" />
+              </svg>
+              Upload progress
+            </button>
+
             <template v-if="isHomeowner && !task.hasProgress">
               <button
                 type="button"
@@ -197,5 +255,15 @@ async function deleteTask(taskId: string) {
       <p v-if="addError" class="mb-2 text-xs text-error-text">{{ addError }}</p>
       <BaseButton full-width @click="addTask">+ Add task</BaseButton>
     </div>
+
+    <AddProgressModal
+      v-if="showUploadModal"
+      :tasks="tasksStore.tasks"
+      :initial-task-id="uploadTaskId"
+      :saving="uploading"
+      :upload-error="modalUploadError"
+      @close="showUploadModal = false"
+      @save="handleSaveProgress"
+    />
   </div>
 </template>
