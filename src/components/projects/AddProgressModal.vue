@@ -11,6 +11,7 @@ const props = defineProps<{
   tasks: ProjectTask[]
   saving: boolean
   uploadError?: string
+  initialTaskId?: string
 }>()
 
 const emit = defineEmits<{
@@ -37,7 +38,7 @@ const exifTimestamp = ref<number | null>(null)
 const exifDevice = ref<string | null>(null)
 const readingExif = ref(false)
 
-const taskId = ref('')
+const taskId = ref(props.initialTaskId ?? '')
 const description = ref('')
 const validationError = ref('')
 
