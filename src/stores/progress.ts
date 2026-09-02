@@ -97,6 +97,12 @@ export const useProgressStore = defineStore('progress', {
         status: 'awaiting_review',
         updatedAt: Date.now(),
       })
+      const tasksStore = useTasksStore()
+      const task = tasksStore.tasks.find((t) => t.id === taskId)
+      if (task) {
+        task.status = 'awaiting_review'
+        task.hasProgress = true
+      }
 
       const notificationsStore = useNotificationsStore()
       await notificationsStore.notify(
