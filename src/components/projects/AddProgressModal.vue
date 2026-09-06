@@ -20,7 +20,7 @@ const emit = defineEmits<{
     payload: {
       taskId: string
       taskTitle: string
-      file: File
+      files: File[]
       description: string
       exifTimestamp: number | null
       exifDevice: string | null
@@ -28,14 +28,20 @@ const emit = defineEmits<{
   ]
 }>()
 
+const MAX_PHOTOS = 5
+
+interface PhotoSlot {
+  file: File
+  previewUrl: string
+  exifTimestamp: number | null
+  exifDevice: string | null
+  exifText: string
+}
+
 const cameraInput = ref<HTMLInputElement | null>(null)
 const galleryInput = ref<HTMLInputElement | null>(null)
 
-const file = ref<File | null>(null)
-const previewUrl = ref<string | null>(null)
-const exifText = ref('')
-const exifTimestamp = ref<number | null>(null)
-const exifDevice = ref<string | null>(null)
+const slots = ref<PhotoSlot[]>([])
 const readingExif = ref(false)
 
 const taskId = ref(props.initialTaskId ?? '')
@@ -50,32 +56,46 @@ const selectableTasks = computed(() =>
   props.tasks.filter((t) => t.status === 'not_started' || t.status === 'sent_back'),
 )
 
-async function onFileChange(e: Event) {
-  const picked = (e.target as HTMLInputElement).files?.[0]
-  if (!picked) return
-  validationError.value = ''
+const remainingSlots = computed(() => MAX_PHOTOS - slots.value.length)
 
-  const err = validateImageFile(picked)
-  if (err) {
-    validationError.value = err
-    return
+async function onFilesChange(e: Event) {
+  const files = Array.from((e.target as HTMLInputElement).files ?? [])
+  validationError.value = ''
+  readingExif.value = true
+
+  for (const file of files) {
+    if (slots.value.length >= MAX_PHOTOS) {
+      validationError.value = `You can add up to ${MAX_PHOTOS} photos.`
+      break
+    }
+    const err = validateImageFile(file)
+    if (err) {
+      validationError.value = err
+      continue
+    }
+    const exif = await readExif(file)
+    slots.value.push({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      exifTimestamp: exif.timestamp,
+      exifDevice: exif.device,
+      exifText: formatExif(exif),
+    })
   }
 
-  file.value = picked
-  previewUrl.value = URL.createObjectURL(picked)
-
-  readingExif.value = true
-  const exif = await readExif(picked)
-  exifTimestamp.value = exif.timestamp
-  exifDevice.value = exif.device
-  exifText.value = formatExif(exif)
   readingExif.value = false
+  if (cameraInput.value) cameraInput.value.value = ''
+  if (galleryInput.value) galleryInput.value.value = ''
+}
+
+function removeSlot(i: number) {
+  slots.value.splice(i, 1)
 }
 
 function submit() {
   validationError.value = ''
-  if (!file.value) {
-    validationError.value = 'Add a photo first.'
+  if (!slots.value.length) {
+    validationError.value = 'Add at least one photo.'
     return
   }
   if (!taskId.value) {
@@ -87,13 +107,17 @@ function submit() {
     return
   }
 
+  // Every photo's own EXIF is preserved per-image on upload — this just picks
+  // the first photo's timestamp/device as the update's representative one.
+  const primary = slots.value[0]
+
   emit('save', {
     taskId: taskId.value,
     taskTitle: selectedTask.value?.title ?? '',
-    file: file.value,
+    files: slots.value.map((s) => s.file),
     description: description.value.trim(),
-    exifTimestamp: exifTimestamp.value,
-    exifDevice: exifDevice.value,
+    exifTimestamp: primary.exifTimestamp,
+    exifDevice: primary.exifDevice,
   })
 }
 </script>
@@ -104,7 +128,7 @@ function submit() {
       <div v-if="saving" class="absolute inset-0 z-10 rounded-card bg-white/60" />
 
       <h2 class="mb-1 text-lg font-semibold text-ink">Add progress</h2>
-      <p class="mb-4 text-xs text-muted">A photo, the task it's for, and what happened.</p>
+      <p class="mb-4 text-xs text-muted">Up to {{ MAX_PHOTOS }} photos, the task it's for, and what happened.</p>
 
       <AlertBanner
         v-if="validationError"
@@ -158,18 +182,47 @@ function submit() {
           :accept="acceptAttr"
           capture="environment"
           class="hidden"
-          @change="onFileChange"
+          @change="onFilesChange"
         />
-        <input ref="galleryInput" type="file" :accept="acceptAttr" class="hidden" @change="onFileChange" />
+        <input
+          ref="galleryInput"
+          type="file"
+          :accept="acceptAttr"
+          multiple
+          class="hidden"
+          @change="onFilesChange"
+        />
 
-        <div v-if="previewUrl" class="mb-1.5 h-24 overflow-hidden rounded-lg bg-cream">
-          <img :src="previewUrl" alt="" class="h-full w-full object-cover" />
+        <div class="mb-1 grid grid-cols-5 gap-1.5">
+          <div
+            v-for="(slot, i) in slots"
+            :key="i"
+            class="relative aspect-square overflow-hidden rounded-lg bg-cream"
+          >
+            <img :src="slot.previewUrl" alt="" class="h-full w-full object-cover" />
+            <button
+              type="button"
+              class="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-ink/70 text-white"
+              aria-label="Remove photo"
+              @click="removeSlot(i)"
+            >
+              <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <path stroke-linecap="round" d="M5 5l10 10M15 5L5 15" />
+              </svg>
+            </button>
+          </div>
+          <div
+            v-if="remainingSlots > 0"
+            class="flex aspect-square items-center justify-center rounded-lg border-2 border-dashed border-cream text-muted"
+          >
+            <span class="text-[10px]">{{ remainingSlots }} left</span>
+          </div>
         </div>
-        <p v-if="previewUrl" class="mb-3 flex items-center gap-1 text-[11px] text-muted">
+        <p class="mb-3 flex items-center gap-1 text-[11px] text-muted">
           <svg class="h-3 w-3 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4c0 .3.1.5.3.7l3 3a1 1 0 001.4-1.4L11 9.6V6z" clip-rule="evenodd" />
           </svg>
-          {{ readingExif ? 'Checking photo info…' : exifText }}
+          {{ readingExif ? 'Checking photo info…' : (slots[0]?.exifText ?? `0/${MAX_PHOTOS} photos`) }}
         </p>
 
         <p class="mb-1 text-sm font-medium text-ink">Task</p>

@@ -52,34 +52,36 @@ export const useProgressStore = defineStore('progress', {
       homeownerUid: string,
       taskId: string,
       taskTitle: string,
-      file: File,
+      files: File[],
       description: string,
       exifTimestamp: number | null,
       exifDevice: string | null,
     ) {
       const stamp = Date.now()
-      const fullRef = ref(storage, `progress/${projectId}/${stamp}-full-${file.name}`)
-
-      let thumbUrl: string
-      let fullUrl: string
-      try {
-        const thumbBlob = await createThumbnail(file)
-        const thumbRef = ref(storage, `progress/${projectId}/${stamp}-thumb-${file.name}.jpg`)
-        await Promise.all([uploadBytes(fullRef, file), uploadBytes(thumbRef, thumbBlob)])
-        ;[fullUrl, thumbUrl] = await Promise.all([
-          getDownloadURL(fullRef),
-          getDownloadURL(thumbRef),
-        ])
-      } catch {
-        await uploadBytes(fullRef, file)
-        fullUrl = await getDownloadURL(fullRef)
-        thumbUrl = fullUrl
-      }
+      const images = await Promise.all(
+        files.map(async (file, i) => {
+          const fullRef = ref(storage, `progress/${projectId}/${stamp}-${i}-full-${file.name}`)
+          try {
+            const thumbBlob = await createThumbnail(file)
+            const thumbRef = ref(storage, `progress/${projectId}/${stamp}-${i}-thumb-${file.name}.jpg`)
+            await Promise.all([uploadBytes(fullRef, file), uploadBytes(thumbRef, thumbBlob)])
+            const [full, thumb] = await Promise.all([
+              getDownloadURL(fullRef),
+              getDownloadURL(thumbRef),
+            ])
+            return { full, thumb }
+          } catch {
+            await uploadBytes(fullRef, file)
+            const full = await getDownloadURL(fullRef)
+            return { full, thumb: full }
+          }
+        }),
+      )
 
       const payload = {
         taskId,
         taskTitle,
-        images: [{ thumb: thumbUrl, full: fullUrl }],
+        images,
         description,
         status: 'pending' as const,
         sentBackReason: null,

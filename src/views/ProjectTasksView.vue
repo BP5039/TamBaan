@@ -61,7 +61,7 @@ function openUploadFor(taskId: string) {
 async function handleSaveProgress(payload: {
   taskId: string
   taskTitle: string
-  file: File
+  files: File[]
   description: string
   exifTimestamp: number | null
   exifDevice: string | null
@@ -75,7 +75,7 @@ async function handleSaveProgress(payload: {
       project.value.homeownerUid,
       payload.taskId,
       payload.taskTitle,
-      payload.file,
+      payload.files,
       payload.description,
       payload.exifTimestamp,
       payload.exifDevice,
