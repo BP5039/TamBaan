@@ -189,7 +189,14 @@ watch(projectId, load, { immediate: true })
         <template v-if="project.contractorUid">
           <div class="mb-4 rounded-lg border border-cream p-3">
             <p class="text-xs text-muted">Contractor</p>
-            <p class="text-sm font-medium text-ink">{{ project.contractorName }}</p>
+            <router-link
+              v-if="project.contractorUsername"
+              :to="`/discover/${project.contractorUsername}`"
+              class="text-sm font-medium text-primary underline"
+            >
+              {{ project.contractorName }}
+            </router-link>
+            <p v-else class="text-sm font-medium text-ink">{{ project.contractorName }}</p>
           </div>
           <div v-if="isContractor && homeownerContact" class="mb-4 rounded-lg border border-cream p-3">
             <p class="mb-1 text-xs text-muted">Homeowner contact</p>
