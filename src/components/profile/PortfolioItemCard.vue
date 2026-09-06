@@ -82,7 +82,7 @@ function onImageClick() {
       <p class="line-clamp-3 text-xs text-ink/90">{{ item.description }}</p>
       <p class="mt-1 text-[11px] text-muted">{{ item.location }}</p>
       <button
-        v-if="canDelete"
+        v-if="canDelete && item.source !== 'collaboration'"
         type="button"
         class="mt-2 text-xs font-medium text-error hover:underline"
         @click="$emit('delete')"

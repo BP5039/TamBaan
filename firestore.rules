@@ -22,7 +22,8 @@ service cloud.firestore {
             userId == get(/databases/$(database)/documents/projects/$(request.resource.data.projectId)).data.contractorUid
           )
         );
-        allow update, delete: if request.auth != null && request.auth.uid == userId;
+        allow update: if request.auth != null && request.auth.uid == userId;
+        allow delete: if request.auth != null && request.auth.uid == userId && resource.data.source != 'collaboration';
       }
     }
 
