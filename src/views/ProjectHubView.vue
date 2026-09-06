@@ -186,16 +186,18 @@ watch(projectId, load, { immediate: true })
         </p>
         <p class="mb-4 text-xs text-muted">Homeowner: {{ project.homeownerName }}</p>
 
-        <div v-if="project.contractorUid" class="mb-4 rounded-lg border border-cream p-3">
-          <p class="text-xs text-muted">Contractor</p>
-          <p class="text-sm font-medium text-ink">{{ project.contractorName }}</p>
-        </div>
-        <div v-if="isContractor && homeownerContact" class="mb-4 rounded-lg border border-cream p-3">
-          <p class="mb-1 text-xs text-muted">Homeowner contact</p>
-          <p class="text-sm text-ink">{{ homeownerContact.phone }}</p>
-          <p v-if="homeownerContact.lineId" class="text-xs text-ink">LINE: {{ homeownerContact.lineId }}</p>
-          <p v-if="homeownerContact.facebookId" class="text-xs text-ink">FB: {{ homeownerContact.facebookId }}</p>
-        </div>
+        <template v-if="project.contractorUid">
+          <div class="mb-4 rounded-lg border border-cream p-3">
+            <p class="text-xs text-muted">Contractor</p>
+            <p class="text-sm font-medium text-ink">{{ project.contractorName }}</p>
+          </div>
+          <div v-if="isContractor && homeownerContact" class="mb-4 rounded-lg border border-cream p-3">
+            <p class="mb-1 text-xs text-muted">Homeowner contact</p>
+            <p class="text-sm text-ink">{{ homeownerContact.phone }}</p>
+            <p v-if="homeownerContact.lineId" class="text-xs text-ink">LINE: {{ homeownerContact.lineId }}</p>
+            <p v-if="homeownerContact.facebookId" class="text-xs text-ink">FB: {{ homeownerContact.facebookId }}</p>
+          </div>
+        </template>
         <div
           v-else-if="isPendingInvitee"
           class="mb-4 rounded-lg border border-pending-border bg-pending-bg p-3"
