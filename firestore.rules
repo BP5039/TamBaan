@@ -81,7 +81,13 @@ service cloud.firestore {
           request.auth.uid == resource.data.pendingInvitationUid
         )
       );
-      allow delete: if false;
+      // Homeowner-only, and only in the same window that governs editing —
+      // never after an invite goes out, and never once a contractor is set.
+      allow delete: if request.auth != null &&
+        request.auth.uid == resource.data.homeownerUid &&
+        resource.data.status == 'pending' &&
+        resource.data.pendingInvitationUid == null &&
+        resource.data.contractorUid == null;
 
       match /tasks/{taskId} {
         allow read: if get(/databases/$(database)/documents/projects/$(projectId)).data.status == 'completed' || (
@@ -115,6 +121,9 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Homeowner contact info, shared only with the accepted contractor on this
+      // specific project. Deliberately excluded from the "completed = public" read
+      // rule above — this never becomes public, even after the project finishes.
       match /private/{docId} {
         allow read: if request.auth != null && (
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid ||
@@ -122,7 +131,8 @@ service cloud.firestore {
         );
         allow create, update: if request.auth != null &&
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid;
-        allow delete: if false;
+        allow delete: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid;
       }
     }
 
