@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import type { PortfolioItem } from '@/types'
 import PortfolioLightbox from '@/components/profile/PortfolioLightbox.vue'
+import CardMenu from '@/components/ui/CardMenu.vue'
 
 const props = defineProps<{ item: PortfolioItem; canDelete?: boolean }>()
 const emit = defineEmits<{ delete: []; 'open-project': [projectId: string] }>()
@@ -51,6 +52,10 @@ function onImageClick() {
         {{ item.source === 'collaboration' ? 'Completed project' : 'Past work' }}
       </span>
 
+      <div v-if="canDelete && item.source !== 'collaboration'" class="absolute right-2 top-2">
+        <CardMenu :items="[{ label: 'Remove', action: () => $emit('delete'), variant: 'danger' }]" />
+      </div>
+
       <template v-if="hasMultiple">
         <button
           type="button"
@@ -81,14 +86,6 @@ function onImageClick() {
       <p class="mb-0.5 text-xs font-semibold text-ink">{{ item.title }}</p>
       <p class="line-clamp-3 text-xs text-ink/90">{{ item.description }}</p>
       <p class="mt-1 text-[11px] text-muted">{{ item.location }}</p>
-      <button
-        v-if="canDelete && item.source !== 'collaboration'"
-        type="button"
-        class="mt-2 text-xs font-medium text-error hover:underline"
-        @click="$emit('delete')"
-      >
-        Remove
-      </button>
     </div>
 
     <PortfolioLightbox

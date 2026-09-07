@@ -1,7 +1,27 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useProjectsStore } from '@/stores/projects'
+import CardMenu from '@/components/ui/CardMenu.vue'
 import type { Project } from '@/types/project'
 
-defineProps<{ project: Project }>()
+const props = defineProps<{ project: Project }>()
+
+const authStore = useAuthStore()
+const projectsStore = useProjectsStore()
+
+const canDelete = computed(
+  () =>
+    props.project.homeownerUid === authStore.user?.uid &&
+    props.project.status === 'pending' &&
+    !props.project.pendingInvitationUid &&
+    !props.project.contractorUid,
+)
+
+async function handleDelete() {
+  if (!window.confirm('Delete this project? This can\'t be undone.')) return
+  await projectsStore.deleteProject(props.project)
+}
 
 function statusStyle(status: string) {
   if (status === 'active' || status === 'completed') return 'bg-success-bg text-success-text'
@@ -34,6 +54,10 @@ function statusLabel(status: string) {
       >
         {{ statusLabel(project.status) }}
       </span>
+
+      <div v-if="canDelete" class="absolute right-2 top-2">
+        <CardMenu :items="[{ label: 'Delete project', action: handleDelete, variant: 'danger' }]" />
+      </div>
     </div>
     <div class="p-3">
       <p class="mb-0.5 text-xs font-semibold text-ink">{{ project.name }}</p>

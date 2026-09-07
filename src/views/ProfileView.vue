@@ -221,15 +221,17 @@ async function logout() {
                 <div v-for="group in projectsStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
                   <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
                   <div class="grid grid-cols-2 gap-4">
-                    <button
+                    <div
                       v-for="p in group.items"
                       :key="p.id"
-                      type="button"
-                      class="text-left hover:opacity-90"
+                      role="link"
+                      tabindex="0"
+                      class="cursor-pointer text-left hover:opacity-90"
                       @click="router.push(`/projects/${p.id}`)"
+                      @keydown.enter="router.push(`/projects/${p.id}`)"
                     >
                       <ProjectCard :project="p" />
-                    </button>
+                    </div>
                   </div>
                 </div>
               </div>
