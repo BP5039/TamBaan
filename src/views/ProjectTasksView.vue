@@ -163,7 +163,7 @@ async function deleteTask(taskId: string) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl px-4 py-8">
+  <div class="w-full px-[15%] py-8">
     <BaseButton variant="ghost" class="mb-4" @click="router.push(`/projects/${projectId}`)">
       ← {{ project?.name ?? 'Project' }}
     </BaseButton>

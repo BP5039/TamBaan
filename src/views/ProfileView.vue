@@ -97,7 +97,7 @@ async function logout() {
 
 <template>
   <div v-if="profile" class="flex h-full flex-col overflow-hidden">
-    <div class="mx-auto flex w-full max-w-4xl flex-1 flex-col overflow-hidden px-4 py-8">
+    <div class="flex w-full flex-1 flex-col overflow-hidden px-[15%] py-8">
       <div
         class="grid flex-1 grid-cols-1 gap-6 overflow-hidden rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]"
       >
@@ -199,7 +199,7 @@ async function logout() {
               <div v-if="portfolioStore.groupedByYear.length">
                 <div v-for="group in portfolioStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
                   <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
-                  <div class="grid grid-cols-2 gap-4">
+                  <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
                     <PortfolioItemCard
                       v-for="item in group.items"
                       :key="item.id"
@@ -220,7 +220,7 @@ async function logout() {
               <div v-if="projectsStore.groupedByYear.length">
                 <div v-for="group in projectsStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
                   <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
-                  <div class="grid grid-cols-2 gap-4">
+                  <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
                     <div
                       v-for="p in group.items"
                       :key="p.id"

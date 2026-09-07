@@ -50,7 +50,7 @@ watch(username, load)
 
 <template>
   <div class="flex h-full flex-col overflow-hidden">
-    <div class="mx-auto flex w-full max-w-4xl flex-1 flex-col overflow-hidden px-4 py-8">
+    <div class="flex w-full flex-1 flex-col overflow-hidden px-[15%] py-8">
       <BaseButton variant="ghost" class="mb-4 flex-shrink-0 self-start" @click="router.push('/discover')">
         ← Back to search
       </BaseButton>
@@ -153,7 +153,7 @@ watch(username, load)
                 <div v-if="portfolioStore.groupedByYear.length">
                   <div v-for="group in portfolioStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
                     <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
                       <PortfolioItemCard
                         v-for="item in group.items"
                         :key="item.id"

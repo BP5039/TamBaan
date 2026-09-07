@@ -108,7 +108,8 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg px-4 py-10">
+  <div class="w-full px-[15%] py-10">
+    <div class="mx-auto max-w-lg">
     <h1 class="mb-1 text-2xl font-semibold text-ink">Edit profile</h1>
     <p class="mb-6 text-sm text-muted">
       This is what contractors and homeowners will see about you.
@@ -199,5 +200,6 @@ async function onSubmit() {
         <BaseButton type="submit" full-width :loading="saving">Save profile</BaseButton>
       </div>
     </form>
+    </div>
   </div>
 </template>

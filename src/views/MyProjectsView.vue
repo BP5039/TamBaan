@@ -21,7 +21,7 @@ const roleLabel = computed(() =>
 </script>
 
 <template>
-  <div class="mx-auto max-w-4xl px-4 py-8">
+  <div class="w-full px-[15%] py-8">
     <div class="rounded-card border border-cream bg-white p-6">
       <h1 class="mb-1 text-xl font-semibold text-ink">My projects</h1>
       <p class="mb-6 text-xs text-muted">Projects where you're the {{ roleLabel }}.</p>
@@ -31,7 +31,7 @@ const roleLabel = computed(() =>
       <div v-else-if="projectsStore.groupedByYear.length">
         <div v-for="group in projectsStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
           <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div
               v-for="p in group.items"
               :key="p.id"

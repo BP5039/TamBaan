@@ -48,8 +48,8 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="border-b border-cream px-4 py-3">
-      <div class="mx-auto max-w-4xl">
+    <div class="border-b border-cream px-[15%] py-3">
+      <div class="w-full">
         <div class="mb-2.5 flex flex-wrap items-center gap-2">
           <select
             :value="discoveryStore.selectedProvince ?? ALL_PROVINCES"
@@ -98,7 +98,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="mx-auto max-w-4xl px-4 py-6">
+    <div class="w-full px-[15%] py-6">
       <AlertBanner
         v-if="discoveryStore.error"
         variant="error"
@@ -109,7 +109,7 @@ onMounted(() => {
 
       <p v-if="discoveryStore.loading" class="py-10 text-center text-sm text-muted">Searching…</p>
 
-      <div v-else-if="discoveryStore.sortedResults.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div v-else-if="discoveryStore.sortedResults.length" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <ProfessionalCard v-for="profile in discoveryStore.sortedResults" :key="profile.uid" :profile="profile" />
       </div>
 

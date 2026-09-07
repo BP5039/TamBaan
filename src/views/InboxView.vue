@@ -26,7 +26,7 @@ const hasUnread = computed(() => notificationsStore.unreadCount > 0)
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl px-4 py-8">
+  <div class="w-full px-[15%] py-8">
     <div class="mb-4 flex items-center justify-between">
       <h1 class="text-xl font-semibold text-ink">Inbox</h1>
       <button

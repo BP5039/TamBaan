@@ -131,7 +131,7 @@ watch(projectId, load, { immediate: true })
 </script>
 
 <template>
-  <div class="mx-auto max-w-4xl px-4 py-8">
+  <div class="w-full px-[15%] py-8">
     <p v-if="projectsStore.loading" class="py-10 text-center text-sm text-muted">Loading…</p>
 
     <p
