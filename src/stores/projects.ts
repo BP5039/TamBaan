@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -294,6 +295,26 @@ export const useProjectsStore = defineStore('projects', {
           }
         }
       }
+    },
+
+    /**
+     * Homeowner-only, and only while the project is still in the same
+     * pending/no-invite window that governs editing. Clears the tasks and
+     * private-contact subcollections too, since Firestore doesn't cascade
+     * deletes on its own — there's never any progress-update data to worry
+     * about here, since that requires an assigned contractor that this
+     * project, by definition, never had.
+     */
+    async deleteProject(project: Project) {
+      const tasksSnap = await getDocs(collection(db, 'projects', project.id, 'tasks'))
+      await Promise.all(tasksSnap.docs.map((d) => deleteDoc(d.ref)))
+      const privateSnap = await getDocs(collection(db, 'projects', project.id, 'private'))
+      await Promise.all(privateSnap.docs.map((d) => deleteDoc(d.ref)))
+
+      await deleteDoc(doc(db, 'projects', project.id))
+
+      this.myProjects = this.myProjects.filter((p) => p.id !== project.id)
+      if (this.currentProject?.id === project.id) this.currentProject = null
     },
 
     /**
