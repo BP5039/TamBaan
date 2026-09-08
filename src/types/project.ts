@@ -41,6 +41,7 @@ export interface ProjectTask {
   description: string
   status: TaskStatus
   hasProgress: boolean
+  referenceImages: { thumb: string; full: string }[]
   createdAt: number
   updatedAt: number
 }
