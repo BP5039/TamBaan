@@ -56,6 +56,7 @@ export const useProgressStore = defineStore('progress', {
       description: string,
       exifTimestamp: number | null,
       exifDevice: string | null,
+      projectName: string,
     ) {
       const stamp = Date.now()
       const images = await Promise.all(
@@ -113,11 +114,11 @@ export const useProgressStore = defineStore('progress', {
         'New progress to review',
         `A new update was submitted on "${taskTitle}"`,
         projectId,
-        '',
+        projectName,
       )
     },
 
-    async verifyUpdate(projectId: string, updateId: string, contractorUid: string, taskTitle: string) {
+    async verifyUpdate(projectId: string, updateId: string, contractorUid: string, taskTitle: string, projectName: string) {
       const u = this.updates.find((x) => x.id === updateId)
       await updateDoc(doc(db, 'projects', projectId, 'updates', updateId), {
         status: 'verified',
@@ -151,7 +152,7 @@ export const useProgressStore = defineStore('progress', {
         'Update verified',
         `Your update on "${taskTitle}" was confirmed`,
         projectId,
-        '',
+        projectName,
       )
     },
 
@@ -161,6 +162,7 @@ export const useProgressStore = defineStore('progress', {
       reason: string,
       contractorUid: string,
       taskTitle: string,
+      projectName: string,
     ) {
       const u = this.updates.find((x) => x.id === updateId)
       await updateDoc(doc(db, 'projects', projectId, 'updates', updateId), {
@@ -187,7 +189,7 @@ export const useProgressStore = defineStore('progress', {
         'Update sent back',
         `Your update on "${taskTitle}" needs changes: ${reason}`,
         projectId,
-        '',
+        projectName,
       )
     },
   },

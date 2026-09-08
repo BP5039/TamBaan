@@ -75,6 +75,7 @@ async function handleSaveProgress(payload: {
         payload.description,
         payload.exifTimestamp,
         payload.exifDevice,
+        project.value?.name ?? '',
     )
     showAddModal.value = false
   } catch (err) {
@@ -87,7 +88,7 @@ async function handleSaveProgress(payload: {
 
 async function verify(updateId: string) {
   const update = progressStore.updates.find((u) => u.id === updateId)
-  await progressStore.verifyUpdate(projectId.value, updateId, project.value!.contractorUid!, update?.taskTitle ?? '')
+  await progressStore.verifyUpdate(projectId.value, updateId, project.value!.contractorUid!, update?.taskTitle ?? '', project.value?.name ?? '')
 }
 
 function startSendBack(updateId: string) {
@@ -112,6 +113,7 @@ async function confirmSendBack(updateId: string) {
     sendBackReason.value.trim(),
     project.value!.contractorUid!,
     update?.taskTitle ?? '',
+    project.value?.name ?? '',
   )
   sendBackTargetId.value = null
 }

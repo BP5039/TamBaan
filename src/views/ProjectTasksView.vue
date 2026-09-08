@@ -79,6 +79,7 @@ async function handleSaveProgress(payload: {
       payload.description,
       payload.exifTimestamp,
       payload.exifDevice,
+      project.value.name,
     )
     showUploadModal.value = false
   } catch (err) {
