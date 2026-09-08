@@ -132,6 +132,10 @@ watch(projectId, load, { immediate: true })
 
 <template>
   <div class="w-full px-[15%] py-8">
+    <BaseButton variant="ghost" class="mb-4" @click="router.push('/projects')">
+      ← Back
+    </BaseButton>
+
     <p v-if="projectsStore.loading" class="py-10 text-center text-sm text-muted">Loading…</p>
 
     <p
