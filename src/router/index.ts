@@ -42,11 +42,6 @@ const router = createRouter({
       component: () => import('@/views/ProjectHubView.vue'),
     },
     {
-      path: '/projects/:id/tasks',
-      name: 'project-tasks',
-      component: () => import('@/views/ProjectTasksView.vue'),
-    },
-    {
       path: '/projects/:id/timeline',
       name: 'project-timeline',
       component: () => import('@/views/ProjectTimelineView.vue'),

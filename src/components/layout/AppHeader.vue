@@ -96,7 +96,7 @@ function onSearchSubmit(e: Event) {
           to="/projects"
           class="text-sm font-medium pb-0.5"
           :class="
-            isActive(['my-projects', 'project-hub', 'project-tasks', 'project-timeline'])
+            isActive(['my-projects', 'project-hub', 'project-timeline'])
               ? 'border-b-2 border-primary text-primary font-semibold'
               : 'text-muted hover:text-ink'
           "

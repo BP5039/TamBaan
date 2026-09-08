@@ -239,19 +239,12 @@ watch(projectId, load, { immediate: true })
 
         <div class="mb-4 flex items-center justify-between rounded-lg border border-cream p-3">
           <div>
-            <p class="text-sm font-medium text-ink">Tasks</p>
+            <p class="text-sm font-medium text-ink">Progress timeline</p>
             <p class="text-xs text-muted">
               {{ tasksStore.tasks.filter((t) => t.status === 'done').length }} of
-              {{ tasksStore.tasks.length }} done
+              {{ tasksStore.tasks.length }} tasks done
             </p>
           </div>
-          <BaseButton variant="outline" @click="router.push(`/projects/${projectId}/tasks`)">
-            View tasks →
-          </BaseButton>
-        </div>
-
-        <div class="mb-4 flex items-center justify-between rounded-lg border border-cream p-3">
-          <p class="text-sm font-medium text-ink">Progress timeline</p>
           <BaseButton variant="outline" @click="router.push(`/projects/${projectId}/timeline`)">
             View timeline →
           </BaseButton>
