@@ -533,7 +533,8 @@ watch(projectId, load, { immediate: true })
         Mobile: vertical, line runs down the left edge.
         sm and up: horizontal scroll, line runs across the top.
       -->
-      <div v-else class="relative flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-8 sm:overflow-x-auto sm:pb-4">
+      <div v-else class="sm:overflow-x-auto sm:pb-4">
+        <div class="relative flex flex-col gap-8 sm:flex-row sm:w-max sm:items-start sm:gap-8">
         <div
           class="absolute left-[7px] top-0 bottom-0 w-0.5 bg-cream sm:left-3.5 sm:right-3.5 sm:top-[7px] sm:bottom-auto sm:h-0.5 sm:w-auto"
         />
@@ -690,6 +691,7 @@ watch(projectId, load, { immediate: true })
             </div>
           </div>
         </template>
+        </div>
       </div>
     </template>
 
