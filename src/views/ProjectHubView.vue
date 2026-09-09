@@ -370,102 +370,64 @@ watch(projectId, load, { immediate: true })
         </div>
       </div>
 
-      <div class="mb-12 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_260px]">
-        <!-- Main column -->
-        <div class="space-y-5">
-          <div class="rounded-card border border-cream bg-white p-6">
-            <p v-if="project.description" class="mb-4 text-sm text-ink/90">{{ project.description }}</p>
+      <div class="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <!-- Column 1: Project info -->
+        <div class="rounded-card border border-cream bg-white p-6">
+          <p v-if="project.description" class="mb-4 text-sm text-ink/90">{{ project.description }}</p>
 
-            <div v-if="project.referenceImages?.length" class="mb-4 flex gap-1.5">
-              <button
-                v-for="(img, i) in project.referenceImages"
-                :key="i"
-                type="button"
-                class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-cream"
-                @click="openLightbox(project.referenceImages, i)"
-              >
-                <img :src="img.thumb" alt="" class="h-full w-full object-cover" />
-              </button>
-            </div>
-
-            <p class="mb-1 text-xs text-muted">
-              Planned: {{ project.plannedStartDate }} → {{ project.plannedEndDate }}
-            </p>
-            <p class="text-xs text-muted">Homeowner: {{ project.homeownerName }}</p>
+          <div v-if="project.referenceImages?.length" class="mb-4 flex gap-1.5">
+            <button
+              v-for="(img, i) in project.referenceImages"
+              :key="i"
+              type="button"
+              class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-cream"
+              @click="openLightbox(project.referenceImages, i)"
+            >
+              <img :src="img.thumb" alt="" class="h-full w-full object-cover" />
+            </button>
           </div>
 
-          <div
-            v-if="isHomeowner && project.status === 'active'"
-            class="rounded-card border border-cream bg-white p-6"
-          >
-            <p class="mb-1 text-sm font-medium text-ink">Mark project complete</p>
-            <p class="mb-3 text-xs text-muted">
-              {{
-                allTasksDone
-                  ? "All tasks are done. Rate the work and close out this project."
-                  : "Finish and verify every task before completing this project."
-              }}
-            </p>
-            <BaseButton full-width :disabled="!allTasksDone" @click="showCompleteModal = true">
-              Complete project
-            </BaseButton>
-          </div>
-
-          <div v-else-if="project.status === 'completed' && project.review" class="rounded-card border border-cream bg-white p-6">
-            <p class="mb-3 text-sm font-medium text-ink">Review</p>
-            <div class="mb-2 flex items-center justify-between text-xs text-ink">
-              <span>Work quality</span>
-              <StarRating :rating="project.review.workQuality" :count="0" />
-            </div>
-            <div class="mb-2 flex items-center justify-between text-xs text-ink">
-              <span>Communication</span>
-              <StarRating :rating="project.review.communication" :count="0" />
-            </div>
-            <div class="mb-3 flex items-center justify-between text-xs text-ink">
-              <span>Timeliness</span>
-              <StarRating :rating="project.review.timeliness" :count="0" />
-            </div>
-            <p v-if="project.review.comment" class="text-xs text-ink/90">{{ project.review.comment }}</p>
-          </div>
+          <p class="mb-1 text-xs text-muted">
+            Planned: {{ project.plannedStartDate }} → {{ project.plannedEndDate }}
+          </p>
+          <p class="text-xs text-muted">Homeowner: {{ project.homeownerName }}</p>
         </div>
 
-        <!-- Sidebar: whatever the current contractor relationship is -->
+        <!-- Column 2: Professional info — whatever the current contractor relationship is -->
         <div>
-          <div v-if="project.contractorUid" class="space-y-3">
-            <div class="rounded-card border border-cream bg-white p-4 text-center">
-              <div class="mx-auto mb-2.5 h-14 w-14 overflow-hidden rounded-full bg-cream">
-                <img
-                  v-if="publicProfileStore.profile?.photoURL"
-                  :src="publicProfileStore.profile.photoURL"
-                  alt=""
-                  class="h-full w-full object-cover"
-                />
-              </div>
-              <router-link
-                v-if="project.contractorUsername"
-                :to="`/discover/${project.contractorUsername}`"
-                class="text-sm font-medium text-ink hover:underline"
-              >
-                {{ project.contractorName }}
-              </router-link>
-              <p v-else class="text-sm font-medium text-ink">{{ project.contractorName }}</p>
-              <StarRating
-                v-if="publicProfileStore.profile"
-                :rating="publicProfileStore.profile.rating ?? null"
-                :count="publicProfileStore.profile.ratingCount ?? 0"
-                class="mt-1 justify-center"
+          <div v-if="project.contractorUid" class="rounded-card border border-cream bg-white p-4 text-center">
+            <div class="mx-auto mb-2.5 h-14 w-14 overflow-hidden rounded-full bg-cream">
+              <img
+                v-if="publicProfileStore.profile?.photoURL"
+                :src="publicProfileStore.profile.photoURL"
+                alt=""
+                class="h-full w-full object-cover"
               />
-              <p v-if="contractorSummary" class="mt-2 text-[11px] text-muted">{{ contractorSummary }}</p>
-              <router-link
-                v-if="project.contractorUsername"
-                :to="`/discover/${project.contractorUsername}`"
-                class="mt-3 block text-xs font-semibold text-primary underline"
-              >
-                View full profile
-              </router-link>
             </div>
+            <router-link
+              v-if="project.contractorUsername"
+              :to="`/discover/${project.contractorUsername}`"
+              class="text-sm font-medium text-ink hover:underline"
+            >
+              {{ project.contractorName }}
+            </router-link>
+            <p v-else class="text-sm font-medium text-ink">{{ project.contractorName }}</p>
+            <StarRating
+              v-if="publicProfileStore.profile"
+              :rating="publicProfileStore.profile.rating ?? null"
+              :count="publicProfileStore.profile.ratingCount ?? 0"
+              class="mt-1 justify-center"
+            />
+            <p v-if="contractorSummary" class="mt-2 text-[11px] text-muted">{{ contractorSummary }}</p>
+            <router-link
+              v-if="project.contractorUsername"
+              :to="`/discover/${project.contractorUsername}`"
+              class="mt-3 block text-xs font-semibold text-primary underline"
+            >
+              View full profile
+            </router-link>
 
-            <div v-if="isContractor && homeownerContact" class="rounded-card border border-cream bg-white p-4">
+            <div v-if="isContractor && homeownerContact" class="mt-4 border-t border-cream pt-4 text-left">
               <p class="mb-1 text-xs text-muted">Homeowner contact</p>
               <p class="text-sm text-ink">{{ homeownerContact.phone }}</p>
               <p v-if="homeownerContact.lineId" class="text-xs text-ink">LINE: {{ homeownerContact.lineId }}</p>
@@ -507,6 +469,41 @@ watch(projectId, load, { immediate: true })
             </p>
           </div>
         </div>
+
+        <!-- Column 3: Mark complete / Review -->
+        <div
+          v-if="isHomeowner && project.status === 'active'"
+          class="rounded-card border border-cream bg-white p-6"
+        >
+          <p class="mb-1 text-sm font-medium text-ink">Mark project complete</p>
+          <p class="mb-3 text-xs text-muted">
+            {{
+              allTasksDone
+                ? "All tasks are done. Rate the work and close out this project."
+                : "Finish and verify every task before completing this project."
+            }}
+          </p>
+          <BaseButton full-width :disabled="!allTasksDone" @click="showCompleteModal = true">
+            Complete project
+          </BaseButton>
+        </div>
+
+        <div v-else-if="project.status === 'completed' && project.review" class="rounded-card border border-cream bg-white p-6">
+          <p class="mb-3 text-sm font-medium text-ink">Review</p>
+          <div class="mb-2 flex items-center justify-between text-xs text-ink">
+            <span>Work quality</span>
+            <StarRating :rating="project.review.workQuality" :count="0" />
+          </div>
+          <div class="mb-2 flex items-center justify-between text-xs text-ink">
+            <span>Communication</span>
+            <StarRating :rating="project.review.communication" :count="0" />
+          </div>
+          <div class="mb-3 flex items-center justify-between text-xs text-ink">
+            <span>Timeliness</span>
+            <StarRating :rating="project.review.timeliness" :count="0" />
+          </div>
+          <p v-if="project.review.comment" class="text-xs text-ink/90">{{ project.review.comment }}</p>
+        </div>
       </div>
 
       <!-- Timeline, merged directly into this page -->
@@ -542,12 +539,11 @@ watch(projectId, load, { immediate: true })
         />
 
         <template v-for="item in timelineRow" :key="item.key">
-          <!-- Month divider: an accent bar with the label, sitting inline in the same row -->
-          <div v-if="item.type === 'divider'" class="relative flex-shrink-0 sm:w-2">
-            <div class="h-full w-0.5 bg-wood sm:h-40" />
-            <p class="mt-2 whitespace-nowrap text-base font-semibold text-wood-text sm:absolute sm:left-4 sm:top-6 sm:mt-0">
+          <!-- Month divider: a chip sitting right on the connecting line, at the same height as the dots -->
+          <div v-if="item.type === 'divider'" class="relative z-10 flex-shrink-0 sm:flex sm:h-3.5 sm:items-center">
+            <span class="inline-block whitespace-nowrap rounded-full border border-cream bg-white px-3 py-1 text-xs font-semibold text-wood-text">
               {{ item.label }}
-            </p>
+            </span>
           </div>
 
           <div
