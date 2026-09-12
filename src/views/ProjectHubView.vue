@@ -266,6 +266,7 @@ async function handleTaskDelete(taskId: string) {
 }
 
 async function verify(updateId: string) {
+  if (!window.confirm("Confirm this work? This can't be undone.")) return
   const update = progressStore.updates.find((u) => u.id === updateId)
   await progressStore.verifyUpdate(projectId.value, updateId, project.value!.contractorUid!, update?.taskTitle ?? '', project.value?.name ?? '')
 }
@@ -285,6 +286,7 @@ async function confirmSendBack(updateId: string) {
     sendBackError.value = 'Explain what needs fixing.'
     return
   }
+  if (!window.confirm("Send this back to the professional? This can't be undone.")) return
   const update = progressStore.updates.find((u) => u.id === updateId)
   await progressStore.sendBackUpdate(
     projectId.value,
@@ -522,7 +524,10 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Timeline, merged directly into this page -->
+      <!-- Timeline, merged directly into this page — only once there's actually
+           an active collaboration; an invite that hasn't been accepted yet
+           shouldn't reveal task-level detail. -->
+      <template v-if="project.status !== 'pending'">
       <div class="mb-6 flex items-center justify-between">
         <div>
           <h2 class="text-lg font-semibold text-ink">Timeline</h2>
@@ -709,6 +714,7 @@ onUnmounted(() => {
         </template>
         </div>
       </div>
+      </template>
     </template>
 
     <CompleteProjectModal
