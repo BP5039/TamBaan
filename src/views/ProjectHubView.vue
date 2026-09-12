@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase/config'
@@ -90,11 +90,35 @@ async function loadHomeownerContact() {
 const contractorSummary = computed(() => {
   const p = publicProfileStore.profile
   if (!p) return ''
-  const parts = ['Contractor']
+  const parts: string[] = []
   if (p.workCategories[0]) parts.push(labelForCategory(p.workCategories[0]))
   if (p.province) parts.push(p.province)
   return parts.join(' · ')
 })
+
+// Description centers when it's short, but switches to left-aligned once it
+// wraps to more than one line — centered multi-line text gets ragged edges.
+const descriptionEl = ref<HTMLElement | null>(null)
+const descriptionWraps = ref(false)
+
+function checkDescriptionWrap() {
+  const el = descriptionEl.value
+  if (!el) return
+  const lineHeight = parseFloat(window.getComputedStyle(el).lineHeight)
+  descriptionWraps.value = el.scrollHeight > lineHeight * 1.4
+}
+
+onMounted(() => {
+  checkDescriptionWrap()
+  window.addEventListener('resize', checkDescriptionWrap)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', checkDescriptionWrap)
+})
+watch(
+  () => project.value?.description,
+  () => nextTick(checkDescriptionWrap),
+)
 
 const respondLoading = computed(() => projectsStore.loading)
 
@@ -390,31 +414,58 @@ onUnmounted(() => {
 
       <div class="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <!-- Column 1: Project info -->
-        <div class="rounded-card border border-cream bg-white p-6">
-          <p v-if="project.description" class="mb-4 text-sm text-ink/90">{{ project.description }}</p>
-
-          <div v-if="project.referenceImages?.length" class="mb-4 flex gap-1.5">
+        <div class="rounded-card border border-cream bg-white p-4 text-center">
+          <div class="relative mx-auto mb-2.5 h-12 w-12">
             <button
-              v-for="(img, i) in project.referenceImages"
-              :key="i"
+              v-if="project.referenceImages?.length"
               type="button"
-              class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-cream"
-              @click="openLightbox(project.referenceImages, i)"
+              class="h-12 w-12 overflow-hidden rounded-full bg-cream"
+              @click="openLightbox(project.referenceImages, 0)"
             >
-              <img :src="img.thumb" alt="" class="h-full w-full object-cover" />
+              <img :src="project.referenceImages[0].thumb" alt="" class="h-full w-full object-cover" />
             </button>
+            <div v-else class="flex h-12 w-12 items-center justify-center rounded-full bg-cream">
+              <svg class="h-5 w-5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-1.519-3.75L12 12l1.519 1.5m0 0L15 15l-1.481-1.5" />
+              </svg>
+            </div>
+            <span
+              v-if="project.referenceImages && project.referenceImages.length > 1"
+              class="absolute -bottom-0.5 -right-0.5 rounded-full border-2 border-white bg-ink px-1 text-[9px] font-semibold text-white"
+            >
+              {{ project.referenceImages.length }}
+            </span>
           </div>
 
+          <p class="text-sm font-semibold text-ink">{{ project.name }}</p>
+          <p
+            v-if="project.description"
+            ref="descriptionEl"
+            class="mb-2 mt-1 text-xs text-ink/90"
+            :class="descriptionWraps ? 'text-left' : 'text-center'"
+          >
+            {{ project.description }}
+          </p>
           <p class="mb-1 text-xs text-muted">
             Planned: {{ project.plannedStartDate }} → {{ project.plannedEndDate }}
           </p>
-          <p class="text-xs text-muted">Homeowner: {{ project.homeownerName }}</p>
+          <p class="text-xs text-ink">
+            Homeowner:
+            <router-link
+              v-if="project.homeownerUsername"
+              :to="`/discover/${project.homeownerUsername}`"
+              class="font-medium text-primary underline"
+            >
+              {{ project.homeownerName }}
+            </router-link>
+            <span v-else class="font-medium">{{ project.homeownerName }}</span>
+          </p>
         </div>
 
         <!-- Column 2: Professional info — whatever the current contractor relationship is -->
         <div>
           <div v-if="project.contractorUid" class="rounded-card border border-cream bg-white p-4 text-center">
-            <div class="mx-auto mb-2.5 h-14 w-14 overflow-hidden rounded-full bg-cream">
+            <div class="mx-auto mb-2.5 h-12 w-12 overflow-hidden rounded-full bg-cream">
               <img
                 v-if="publicProfileStore.profile?.photoURL"
                 :src="publicProfileStore.profile.photoURL"
@@ -491,10 +542,15 @@ onUnmounted(() => {
         <!-- Column 3: Mark complete / Review -->
         <div
           v-if="isHomeowner && project.status === 'active'"
-          class="rounded-card border border-cream bg-white p-6"
+          class="rounded-card border border-cream bg-white p-4 text-center"
         >
-          <p class="mb-1 text-sm font-medium text-ink">Mark project complete</p>
-          <p class="mb-3 text-xs text-muted">
+          <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-success-bg">
+            <svg class="h-5 w-5 text-success-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
+          <p class="mb-1.5 text-sm font-semibold text-ink">Mark complete</p>
+          <p class="mb-3 text-left text-xs text-muted">
             {{
               allTasksDone
                 ? "All tasks are done. Rate the work and close out this project."
@@ -506,21 +562,26 @@ onUnmounted(() => {
           </BaseButton>
         </div>
 
-        <div v-else-if="project.status === 'completed' && project.review" class="rounded-card border border-cream bg-white p-6">
-          <p class="mb-3 text-sm font-medium text-ink">Review</p>
-          <div class="mb-2 flex items-center justify-between text-xs text-ink">
-            <span>Work quality</span>
-            <StarRating :rating="project.review.workQuality" :count="0" />
+        <div v-else-if="project.status === 'completed' && project.review" class="rounded-card border border-cream bg-white p-4 text-center">
+          <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-wood-bg">
+            <span class="text-sm font-bold text-wood-text">{{ project.review.overall.toFixed(1) }}</span>
           </div>
-          <div class="mb-2 flex items-center justify-between text-xs text-ink">
-            <span>Communication</span>
-            <StarRating :rating="project.review.communication" :count="0" />
+          <p class="mb-2 text-sm font-semibold text-ink">Review</p>
+          <div class="text-left text-xs text-ink">
+            <div class="mb-1 flex items-center justify-between">
+              <span>Work quality</span>
+              <StarRating :rating="project.review.workQuality" :count="0" />
+            </div>
+            <div class="mb-1 flex items-center justify-between">
+              <span>Communication</span>
+              <StarRating :rating="project.review.communication" :count="0" />
+            </div>
+            <div class="mb-2 flex items-center justify-between">
+              <span>Timeliness</span>
+              <StarRating :rating="project.review.timeliness" :count="0" />
+            </div>
+            <p v-if="project.review.comment" class="text-xs italic text-muted">{{ project.review.comment }}</p>
           </div>
-          <div class="mb-3 flex items-center justify-between text-xs text-ink">
-            <span>Timeliness</span>
-            <StarRating :rating="project.review.timeliness" :count="0" />
-          </div>
-          <p v-if="project.review.comment" class="text-xs text-ink/90">{{ project.review.comment }}</p>
         </div>
       </div>
 
