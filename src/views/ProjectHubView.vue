@@ -414,7 +414,7 @@ onUnmounted(() => {
 
       <div class="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <!-- Column 1: Project info -->
-        <div class="rounded-card border border-cream bg-white p-4 text-center">
+        <div class="h-full rounded-card border border-cream bg-white p-4 text-center">
           <div class="relative mx-auto mb-2.5 h-12 w-12">
             <button
               v-if="project.referenceImages?.length"
@@ -463,8 +463,8 @@ onUnmounted(() => {
         </div>
 
         <!-- Column 2: Professional info — whatever the current contractor relationship is -->
-        <div>
-          <div v-if="project.contractorUid" class="rounded-card border border-cream bg-white p-4 text-center">
+        <div class="h-full">
+          <div v-if="project.contractorUid" class="h-full rounded-card border border-cream bg-white p-4 text-center">
             <div class="mx-auto mb-2.5 h-12 w-12 overflow-hidden rounded-full bg-cream">
               <img
                 v-if="publicProfileStore.profile?.photoURL"
@@ -506,7 +506,7 @@ onUnmounted(() => {
 
           <div
             v-else-if="isPendingInvitee"
-            class="rounded-card border border-pending-border bg-pending-bg p-4"
+            class="h-full rounded-card border border-pending-border bg-pending-bg p-4"
           >
             <p class="mb-3 text-xs text-pending-text">
               {{ project.homeownerName }} invited you to this project
@@ -523,14 +523,14 @@ onUnmounted(() => {
 
           <div
             v-else-if="project.pendingInvitationUid"
-            class="rounded-card border border-pending-border bg-pending-bg p-4"
+            class="h-full rounded-card border border-pending-border bg-pending-bg p-4"
           >
             <p class="text-xs text-pending-text">
               Invitation sent to {{ project.pendingInvitationName }} — waiting for their response
             </p>
           </div>
 
-          <div v-else-if="isHomeowner" class="rounded-card border border-dashed border-cream p-4">
+          <div v-else-if="isHomeowner" class="h-full rounded-card border border-dashed border-cream p-4">
             <p class="text-xs text-muted">
               No contractor invited yet. Visit a professional's profile from
               <router-link to="/discover" class="font-medium text-primary underline">Find professionals</router-link>
@@ -542,7 +542,7 @@ onUnmounted(() => {
         <!-- Column 3: Mark complete / Review -->
         <div
           v-if="isHomeowner && project.status === 'active'"
-          class="rounded-card border border-cream bg-white p-4 text-center"
+          class="h-full rounded-card border border-cream bg-white p-4 text-center"
         >
           <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-success-bg">
             <svg class="h-5 w-5 text-success-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -562,7 +562,7 @@ onUnmounted(() => {
           </BaseButton>
         </div>
 
-        <div v-else-if="project.status === 'completed' && project.review" class="rounded-card border border-cream bg-white p-4 text-center">
+        <div v-else-if="project.status === 'completed' && project.review" class="h-full rounded-card border border-cream bg-white p-4 text-center">
           <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-wood-bg">
             <span class="text-sm font-bold text-wood-text">{{ project.review.overall.toFixed(1) }}</span>
           </div>
