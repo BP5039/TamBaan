@@ -329,6 +329,14 @@ function statusBadge(status: string) {
   return { text: 'Awaiting review', class: 'bg-pending-bg text-pending-text' }
 }
 
+// Tiered by score rather than a hard red/green split — an "okay" review
+// shouldn't get flagged the same way as a genuinely bad one.
+function reviewScoreClass(score: number) {
+  if (score >= 4) return { bg: 'bg-success-bg', text: 'text-success-text' }
+  if (score >= 2.5) return { bg: 'bg-wood-bg', text: 'text-wood-text' }
+  return { bg: 'bg-error-bg', text: 'text-error-text' }
+}
+
 function dotColor(entry: TimelineEntry) {
   if (entry.kind === 'skeleton') return 'bg-white border-2 border-cream'
   if (entry.update?.status === 'verified') return 'bg-success'
@@ -563,8 +571,11 @@ onUnmounted(() => {
         </div>
 
         <div v-else-if="project.status === 'completed' && project.review" class="h-full rounded-card border border-cream bg-white p-4 text-center">
-          <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-wood-bg">
-            <span class="text-sm font-bold text-wood-text">{{ project.review.overall.toFixed(1) }}</span>
+          <div
+            class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full"
+            :class="reviewScoreClass(project.review.overall).bg"
+          >
+            <span class="text-sm font-bold" :class="reviewScoreClass(project.review.overall).text">{{ project.review.overall.toFixed(1) }}</span>
           </div>
           <p class="mb-2 text-sm font-semibold text-ink">Review</p>
           <div class="text-left text-xs text-ink">
