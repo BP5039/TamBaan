@@ -4,10 +4,11 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDocs,
+  onSnapshot,
   orderBy,
   query,
   updateDoc,
+  type Unsubscribe,
 } from 'firebase/firestore'
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/firebase/config'
@@ -15,6 +16,8 @@ import { createThumbnail } from '@/utils/imageResize'
 import { useNotificationsStore } from '@/stores/notifications'
 import type { ProjectTask, TaskStatus } from '@/types/project'
 import type { PortfolioImage } from '@/types'
+
+let unsubscribeTasksFn: Unsubscribe | null = null
 
 interface TasksState {
   tasks: ProjectTask[]
@@ -58,17 +61,28 @@ export const useTasksStore = defineStore('tasks', {
   }),
 
   actions: {
-    async fetchTasks(projectId: string) {
+    subscribeToTasks(projectId: string) {
+      this.unsubscribeFromTasks()
       this.loading = true
-      try {
-        const q = query(collection(db, 'projects', projectId, 'tasks'), orderBy('createdAt', 'asc'))
-        const snap = await getDocs(q)
-        this.tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ProjectTask)
-      } catch (err) {
-        console.error('fetchTasks failed:', err)
-        this.error = "Couldn't load tasks."
-      } finally {
-        this.loading = false
+      const q = query(collection(db, 'projects', projectId, 'tasks'), orderBy('createdAt', 'asc'))
+      unsubscribeTasksFn = onSnapshot(
+        q,
+        (snap) => {
+          this.tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ProjectTask)
+          this.loading = false
+        },
+        (err) => {
+          console.error('tasks listener failed:', err)
+          this.error = "Couldn't load tasks."
+          this.loading = false
+        },
+      )
+    },
+
+    unsubscribeFromTasks() {
+      if (unsubscribeTasksFn) {
+        unsubscribeTasksFn()
+        unsubscribeTasksFn = null
       }
     },
 

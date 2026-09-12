@@ -4,20 +4,24 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
+  onSnapshot,
   orderBy,
   query,
   runTransaction,
   setDoc,
   updateDoc,
   where,
+  type Unsubscribe,
 } from 'firebase/firestore'
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/firebase/config'
 import { createThumbnail } from '@/utils/imageResize'
 import type { Project, ProjectReview } from '@/types/project'
 import type { PortfolioImage, PortfolioItem, UserProfile } from '@/types'
+
+// Kept outside reactive state — Pinia doesn't need to track a function reference.
+let unsubscribeProjectFn: Unsubscribe | null = null
 import { useNotificationsStore } from '@/stores/notifications'
 import { syncPreview } from '@/stores/portfolio'
 
@@ -106,22 +110,32 @@ export const useProjectsStore = defineStore('projects', {
       }
     },
 
-    async fetchProject(id: string) {
+    /** Starts a live listener — the Project Hub reflects changes from the other party instantly, no manual refetch needed. */
+    subscribeToProject(id: string) {
+      this.unsubscribeFromProject()
       this.loading = true
       this.error = ''
       this.currentProject = null
-      try {
-        const snap = await getDoc(doc(db, 'projects', id))
-        if (snap.exists()) {
-          this.currentProject = { id: snap.id, ...snap.data() } as Project
-        } else {
-          this.error = 'not-found'
-        }
-      } catch (err) {
-        console.error('fetchProject failed:', err)
-        this.error = "Couldn't load this project."
-      } finally {
-        this.loading = false
+      unsubscribeProjectFn = onSnapshot(
+        doc(db, 'projects', id),
+        (snap) => {
+          this.currentProject = snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null
+          if (!snap.exists()) this.error = 'not-found'
+          this.loading = false
+        },
+        (err) => {
+          console.error('project listener failed:', err)
+          this.error = "Couldn't load this project."
+          this.loading = false
+        },
+      )
+    },
+
+    /** Call when leaving the project's pages, or before subscribing to a different project. */
+    unsubscribeFromProject() {
+      if (unsubscribeProjectFn) {
+        unsubscribeProjectFn()
+        unsubscribeProjectFn = null
       }
     },
 

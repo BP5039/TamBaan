@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase/config'
@@ -105,7 +105,6 @@ async function respond(action: 'accept' | 'decline') {
   } else {
     await projectsStore.declineInvitation(project.value)
   }
-  await load()
 }
 
 const allTasksDone = computed(
@@ -313,21 +312,38 @@ function dotColor(entry: TimelineEntry) {
 
 // ---- Load everything this page needs ----
 
-async function load() {
-  await projectsStore.fetchProject(projectId.value)
-  if (!projectsStore.currentProject) return
-
-  await Promise.all([
-    tasksStore.fetchTasks(projectId.value),
-    progressStore.fetchUpdates(projectId.value),
-    loadHomeownerContact(),
-    project.value?.contractorUsername
-      ? publicProfileStore.loadByUsername(project.value.contractorUsername)
-      : Promise.resolve(),
-  ])
+function load() {
+  projectsStore.subscribeToProject(projectId.value)
+  tasksStore.subscribeToTasks(projectId.value)
+  progressStore.subscribeToUpdates(projectId.value)
 }
 
 watch(projectId, load, { immediate: true })
+
+// Homeowner contact and the contractor's public profile depend on who the
+// contractor actually is, which only becomes known once the live project
+// snapshot arrives — so these re-run whenever that changes, rather than
+// living inside load() itself.
+watch(
+  () => project.value?.contractorUid,
+  async (contractorUid) => {
+    if (!contractorUid) {
+      homeownerContact.value = null
+      return
+    }
+    await loadHomeownerContact()
+    if (project.value?.contractorUsername) {
+      await publicProfileStore.loadByUsername(project.value.contractorUsername)
+    }
+  },
+  { immediate: true },
+)
+
+onUnmounted(() => {
+  projectsStore.unsubscribeFromProject()
+  tasksStore.unsubscribeFromTasks()
+  progressStore.unsubscribeFromUpdates()
+})
 </script>
 
 <template>

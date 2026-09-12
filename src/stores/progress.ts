@@ -3,10 +3,11 @@ import {
   addDoc,
   collection,
   doc,
-  getDocs,
+  onSnapshot,
   orderBy,
   query,
   updateDoc,
+  type Unsubscribe,
 } from 'firebase/firestore'
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/firebase/config'
@@ -14,6 +15,8 @@ import { createThumbnail } from '@/utils/imageResize'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useTasksStore } from '@/stores/tasks'
 import type { ProgressUpdate } from '@/types/project'
+
+let unsubscribeUpdatesFn: Unsubscribe | null = null
 
 interface ProgressState {
   updates: ProgressUpdate[]
@@ -29,21 +32,32 @@ export const useProgressStore = defineStore('progress', {
   }),
 
   actions: {
-    async fetchUpdates(projectId: string) {
+    subscribeToUpdates(projectId: string) {
+      this.unsubscribeFromUpdates()
       this.loading = true
       this.error = ''
-      try {
-        const q = query(
-          collection(db, 'projects', projectId, 'updates'),
-          orderBy('createdAt', 'desc'),
-        )
-        const snap = await getDocs(q)
-        this.updates = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ProgressUpdate)
-      } catch (err) {
-        console.error('fetchUpdates failed:', err)
-        this.error = "Couldn't load the timeline."
-      } finally {
-        this.loading = false
+      const q = query(
+        collection(db, 'projects', projectId, 'updates'),
+        orderBy('createdAt', 'desc'),
+      )
+      unsubscribeUpdatesFn = onSnapshot(
+        q,
+        (snap) => {
+          this.updates = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ProgressUpdate)
+          this.loading = false
+        },
+        (err) => {
+          console.error('updates listener failed:', err)
+          this.error = "Couldn't load the timeline."
+          this.loading = false
+        },
+      )
+    },
+
+    unsubscribeFromUpdates() {
+      if (unsubscribeUpdatesFn) {
+        unsubscribeUpdatesFn()
+        unsubscribeUpdatesFn = null
       }
     },
 
