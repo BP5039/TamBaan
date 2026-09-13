@@ -594,6 +594,37 @@ onUnmounted(() => {
             <p v-if="project.review.comment" class="text-xs italic text-muted">{{ project.review.comment }}</p>
           </div>
         </div>
+        
+        <!-- Ghosted preview — anyone viewing a still-pending project (homeowner or
+             the professional deciding on an invite) sees what this slot becomes. -->
+        <div
+          v-else-if="project.status === 'pending'"
+          class="h-full rounded-card border border-dashed border-cream bg-surface p-4 text-center opacity-70"
+        >
+          <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-cream">
+            <svg class="h-5 w-5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
+          <p class="mb-1.5 text-sm font-semibold text-muted">Mark complete</p>
+          <p class="text-xs text-muted">Available once a professional is on board and every task is done.</p>
+        </div>
+
+        <!-- Informational — the contractor's own view of an active project. Only
+             the homeowner marks completion, so this just tells them where things stand. -->
+        <div
+          v-else-if="isContractor && project.status === 'active'"
+          class="h-full rounded-card border border-cream bg-white p-4 text-center"
+        >
+          <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-pending-bg">
+            <svg class="h-5 w-5 text-pending-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2M12 21a9 9 0 100-18 9 9 0 000 18z" />
+            </svg>
+          </div>
+          <p class="mb-1.5 text-sm font-semibold text-ink">Completion</p>
+          <p class="text-xs text-muted">The homeowner will mark this complete once every task is verified.</p>
+        </div>
+
       </div>
 
       <!-- Timeline, merged directly into this page — only once there's actually
