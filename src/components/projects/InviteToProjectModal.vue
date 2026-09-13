@@ -13,6 +13,7 @@ const authStore = useAuthStore()
 const projectsStore = useProjectsStore()
 
 const selectedProjectId = ref('')
+const hasDiscussed = ref(false)
 const error = ref('')
 const sending = ref(false)
 
@@ -30,6 +31,10 @@ async function submit() {
   error.value = ''
   if (!selectedProjectId.value) {
     error.value = 'Choose a project to invite them to.'
+    return
+  }
+  if (!hasDiscussed.value) {
+    error.value = "Confirm you've already discussed this project with them first."
     return
   }
   sending.value = true
@@ -71,16 +76,21 @@ async function submit() {
         <p class="mb-1.5 text-sm font-medium text-ink">Choose project</p>
         <select
           v-model="selectedProjectId"
-          class="mb-5 w-full rounded-lg border border-cream bg-white px-3 py-2.5 text-sm text-ink focus:outline-none"
+          class="mb-4 w-full rounded-lg border border-cream bg-white px-3 py-2.5 text-sm text-ink focus:outline-none"
         >
           <option value="" disabled>Select a project…</option>
           <option v-for="p in invitableProjects" :key="p.id" :value="p.id">{{ p.name }}</option>
         </select>
+
+        <label class="mb-5 flex items-start gap-2 text-xs text-ink">
+          <input v-model="hasDiscussed" type="checkbox" class="mt-0.5 flex-shrink-0" />
+          I've already discussed this project with them (LINE, Facebook, or phone) before inviting.
+        </label>
       </template>
 
       <div class="flex gap-2">
         <BaseButton variant="outline" full-width @click="$emit('close')">Cancel</BaseButton>
-        <BaseButton v-if="invitableProjects.length > 0" full-width :loading="sending" @click="submit">
+        <BaseButton v-if="invitableProjects.length > 0" full-width :disabled="!hasDiscussed" :loading="sending" @click="submit">
           Send invitation
         </BaseButton>
       </div>
