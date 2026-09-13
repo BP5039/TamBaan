@@ -566,13 +566,6 @@ onUnmounted(() => {
             >
               View full profile
             </router-link>
-
-            <div v-if="isContractor && homeownerContact" class="mt-4 border-t border-cream pt-4 text-left">
-              <p class="mb-1 text-xs text-muted">Homeowner contact</p>
-              <p class="text-sm text-ink">{{ homeownerContact.phone }}</p>
-              <p v-if="homeownerContact.lineId" class="text-xs text-ink">LINE: {{ homeownerContact.lineId }}</p>
-              <p v-if="homeownerContact.facebookId" class="text-xs text-ink">FB: {{ homeownerContact.facebookId }}</p>
-            </div>
           </div>
 
           <div
@@ -693,6 +686,13 @@ onUnmounted(() => {
           <p class="mb-1.5 text-sm font-semibold text-ink">Completion</p>
           <p class="text-xs text-muted">The homeowner will mark this complete once every task is verified.</p>
         </div>
+      </div>
+
+      <div v-if="isContractor && homeownerContact" class="mb-12 rounded-card border border-cream bg-white p-4">
+        <p class="mb-2 text-sm font-semibold text-ink">Homeowner contact</p>
+        <p class="text-sm text-ink">{{ homeownerContact.phone }}</p>
+        <p v-if="homeownerContact.lineId" class="text-xs text-ink">LINE: {{ homeownerContact.lineId }}</p>
+        <p v-if="homeownerContact.facebookId" class="text-xs text-ink">FB: {{ homeownerContact.facebookId }}</p>
       </div>
 
       <!-- Timeline, merged directly into this page — only once there's actually

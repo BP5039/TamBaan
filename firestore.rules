@@ -56,7 +56,7 @@ service cloud.firestore {
         // Homeowner: invite a contractor.
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-            ['pendingInvitationUid', 'pendingInvitationName', 'pendingInvitationUsername', 'updatedAt']
+            ['pendingInvitationUid', 'pendingInvitationName', 'pendingInvitationUsername', 'invitationExpiresAt', 'updatedAt']
           ) &&
           request.auth.uid == resource.data.homeownerUid
         ) ||
@@ -67,13 +67,15 @@ service cloud.firestore {
           ) &&
           request.auth.uid == resource.data.homeownerUid
         ) ||
-        // Invited professional: accept (sets contractor, clears invite) or decline (just clears invite).
+        // Invited professional: accept (sets contractor, clears invite) — blocked once expired.
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
             ['contractorUid', 'contractorName', 'contractorUsername', 'pendingInvitationUid', 'pendingInvitationName', 'pendingInvitationUsername', 'status', 'updatedAt']
           ) &&
-          request.auth.uid == resource.data.pendingInvitationUid
+          request.auth.uid == resource.data.pendingInvitationUid &&
+          (resource.data.invitationExpiresAt == null || request.time.toMillis() < resource.data.invitationExpiresAt)
         ) ||
+        // Invited professional: decline (just clears invite) — always allowed, even if already expired.
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
             ['pendingInvitationUid', 'pendingInvitationName', 'pendingInvitationUsername', 'updatedAt']
