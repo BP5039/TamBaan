@@ -61,6 +61,29 @@ export const useProgressStore = defineStore('progress', {
       }
     },
 
+    /**
+     * Called opportunistically whenever the homeowner's own client notices a
+     * pending update has been sitting unreviewed too long. Repeats every time
+     * it's been 24h since the last reminder — there's no backend scheduler,
+     * so this only fires when the homeowner happens to be viewing the page.
+     */
+    async sendStalledReminder(projectId: string, updateId: string, taskTitle: string, homeownerUid: string, projectName: string) {
+      const now = Date.now()
+      await updateDoc(doc(db, 'projects', projectId, 'updates', updateId), { lastReminderAt: now })
+      const u = this.updates.find((x) => x.id === updateId)
+      if (u) u.lastReminderAt = now
+
+      const notificationsStore = useNotificationsStore()
+      await notificationsStore.notify(
+        homeownerUid,
+        'progress_submitted',
+        'Still waiting for your review',
+        `Reminder: "${taskTitle}" has been waiting for your review`,
+        projectId,
+        projectName,
+      )
+    },
+
     async addUpdate(
       projectId: string,
       homeownerUid: string,
@@ -102,6 +125,7 @@ export const useProgressStore = defineStore('progress', {
         sentBackReason: null,
         exifTimestamp,
         exifDevice,
+        lastReminderAt: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       }

@@ -2,6 +2,7 @@ export type NotificationType =
   | 'invitation_received'
   | 'invitation_accepted'
   | 'invitation_declined'
+  | 'invitation_expired'
   | 'task_added'
   | 'progress_submitted'
   | 'progress_verified'

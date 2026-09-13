@@ -162,6 +162,7 @@ export const useProjectsStore = defineStore('projects', {
         pendingInvitationUid: null,
         pendingInvitationName: null,
         pendingInvitationUsername: null,
+        invitationExpiresAt: null,
         lastVerifiedPhotoUrl: null,
         referenceImages: [] as PortfolioImage[],
         review: null,
@@ -202,6 +203,7 @@ export const useProjectsStore = defineStore('projects', {
         pendingInvitationUid: contractorUid,
         pendingInvitationName: contractorName,
         pendingInvitationUsername: contractorUsername,
+        invitationExpiresAt: Date.now() + 3 * 24 * 60 * 60 * 1000,
         updatedAt: Date.now(),
     })
 
@@ -261,6 +263,33 @@ export const useProjectsStore = defineStore('projects', {
         project.id,
         project.name,
     )
+    },
+
+    /**
+     * Homeowner-only, opportunistic cleanup — runs whenever the homeowner's
+     * own client notices a pending invite is past its expiry. There's no
+     * backend scheduler, so this fires lazily on load rather than exactly
+     * at the 3-day mark.
+     */
+    async expireInvitation(project: Project) {
+      const expiredName = project.pendingInvitationName
+      await updateDoc(doc(db, 'projects', project.id), {
+        pendingInvitationUid: null,
+        pendingInvitationName: null,
+        pendingInvitationUsername: null,
+        invitationExpiresAt: null,
+        updatedAt: Date.now(),
+      })
+
+      const notificationsStore = useNotificationsStore()
+      await notificationsStore.notify(
+        project.homeownerUid,
+        'invitation_expired',
+        'Invitation expired',
+        `Your invite to ${expiredName} for "${project.name}" expired without a response`,
+        project.id,
+        project.name,
+      )
     },
 
     /**

@@ -26,6 +26,7 @@ export interface Project {
   pendingInvitationUid: string | null
   pendingInvitationName: string | null
   pendingInvitationUsername: string | null
+  invitationExpiresAt: number | null
   lastVerifiedPhotoUrl: string | null
   referenceImages: { thumb: string; full: string }[]
   review: ProjectReview | null
@@ -58,6 +59,7 @@ export interface ProgressUpdate {
   sentBackReason: string | null
   exifTimestamp: number | null
   exifDevice: string | null
+  lastReminderAt: number | null
   createdAt: number
   updatedAt: number
 }

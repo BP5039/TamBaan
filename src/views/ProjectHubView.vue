@@ -323,10 +323,14 @@ async function confirmSendBack(updateId: string) {
   sendBackTargetId.value = null
 }
 
-function statusBadge(status: string) {
+function statusBadge(status: string, createdAt?: number) {
   if (status === 'verified') return { text: 'Verified', class: 'bg-success-bg text-success-text' }
   if (status === 'sent_back') return { text: 'Sent back', class: 'bg-error-bg text-error-text' }
-  return { text: 'Awaiting review', class: 'bg-pending-bg text-pending-text' }
+  const overdue = createdAt != null && now.value - createdAt >= DAY_MS
+  return {
+    text: overdue ? 'Awaiting review · overdue' : 'Awaiting review',
+    class: 'bg-pending-bg text-pending-text',
+  }
 }
 
 // Tiered by score rather than a hard red/green split — an "okay" review
@@ -373,10 +377,66 @@ watch(
   { immediate: true },
 )
 
+// Drives the invite countdown display, the "overdue" review badge, and the
+// delayed-project tag. Also the clock that triggers the two lazy, no-backend
+// checks below — they only ever run when the right person happens to be
+// viewing the page, since there's no scheduler to run them in the background.
+const now = ref(Date.now())
+const DAY_MS = 24 * 60 * 60 * 1000
+let clockInterval: ReturnType<typeof setInterval> | null = null
+
+async function checkInvitationExpiry() {
+  if (!isHomeowner.value || !project.value?.pendingInvitationUid || !project.value.invitationExpiresAt) return
+  if (now.value >= project.value.invitationExpiresAt) {
+    await projectsStore.expireInvitation(project.value)
+  }
+}
+
+async function checkStalledReviews() {
+  if (!isHomeowner.value || !project.value) return
+  for (const u of progressStore.updates) {
+    if (u.status !== 'pending') continue
+    const since = u.lastReminderAt ?? u.createdAt
+    if (now.value - since >= DAY_MS) {
+      // eslint-disable-next-line no-await-in-loop
+      await progressStore.sendStalledReminder(projectId.value, u.id, u.taskTitle, project.value.homeownerUid, project.value.name)
+    }
+  }
+}
+
+function tick() {
+  now.value = Date.now()
+  checkInvitationExpiry()
+  checkStalledReviews()
+}
+
+onMounted(() => {
+  tick()
+  clockInterval = setInterval(tick, 60_000)
+})
+
+// Delayed only once the deadline has actually passed with work still
+// outstanding — a separate, softer "at risk" warning based on task count is
+// still an open design question, deliberately not built yet.
+const isDelayed = computed(() => {
+  if (!project.value || project.value.status !== 'active') return false
+  return new Date(project.value.plannedEndDate).getTime() < now.value && !allTasksDone.value
+})
+
+function formatCountdown(expiresAt: number | null): string {
+  if (!expiresAt) return ''
+  const diff = expiresAt - now.value
+  if (diff <= 0) return 'Expired'
+  const days = Math.floor(diff / DAY_MS)
+  const hours = Math.floor((diff % DAY_MS) / (60 * 60 * 1000))
+  return `Expires in ${days}d ${hours}h`
+}
+
 onUnmounted(() => {
   projectsStore.unsubscribeFromProject()
   tasksStore.unsubscribeFromTasks()
   progressStore.unsubscribeFromUpdates()
+  if (clockInterval) clearInterval(clockInterval)
 })
 </script>
 
@@ -416,6 +476,9 @@ onUnmounted(() => {
             "
           >
             {{ statusLabel.text }}
+          </span>
+          <span v-if="isDelayed" class="rounded-lg bg-error-bg px-2.5 py-1 text-xs font-medium text-error-text">
+            Delayed
           </span>
         </div>
       </div>
@@ -516,8 +579,11 @@ onUnmounted(() => {
             v-else-if="isPendingInvitee"
             class="h-full rounded-card border border-pending-border bg-pending-bg p-4"
           >
-            <p class="mb-3 text-xs text-pending-text">
+            <p class="mb-1 text-xs text-pending-text">
               {{ project.homeownerName }} invited you to this project
+            </p>
+            <p v-if="project.invitationExpiresAt" class="mb-3 text-[11px] font-semibold text-pending-text">
+              {{ formatCountdown(project.invitationExpiresAt) }}
             </p>
             <div class="flex gap-2">
               <BaseButton variant="outline" :disabled="respondLoading" @click="respond('decline')">
@@ -533,8 +599,11 @@ onUnmounted(() => {
             v-else-if="project.pendingInvitationUid"
             class="h-full rounded-card border border-pending-border bg-pending-bg p-4"
           >
-            <p class="text-xs text-pending-text">
+            <p class="mb-1 text-xs text-pending-text">
               Invitation sent to {{ project.pendingInvitationName }} — waiting for their response
+            </p>
+            <p v-if="project.invitationExpiresAt" class="text-[11px] font-semibold text-pending-text">
+              {{ formatCountdown(project.invitationExpiresAt) }}
             </p>
           </div>
 
@@ -594,7 +663,7 @@ onUnmounted(() => {
             <p v-if="project.review.comment" class="text-xs italic text-muted">{{ project.review.comment }}</p>
           </div>
         </div>
-        
+
         <!-- Ghosted preview — anyone viewing a still-pending project (homeowner or
              the professional deciding on an invite) sees what this slot becomes. -->
         <div
@@ -624,7 +693,6 @@ onUnmounted(() => {
           <p class="mb-1.5 text-sm font-semibold text-ink">Completion</p>
           <p class="text-xs text-muted">The homeowner will mark this complete once every task is verified.</p>
         </div>
-
       </div>
 
       <!-- Timeline, merged directly into this page — only once there's actually
@@ -749,8 +817,8 @@ onUnmounted(() => {
                   <div class="p-2.5">
                     <div class="mb-1 flex items-start justify-between gap-2">
                       <p class="text-sm font-semibold text-ink">{{ item.entry.update.taskTitle }}</p>
-                      <span class="flex-shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-medium" :class="statusBadge(item.entry.update.status).class">
-                        {{ statusBadge(item.entry.update.status).text }}
+                      <span class="flex-shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-medium" :class="statusBadge(item.entry.update.status, item.entry.update.createdAt).class">
+                        {{ statusBadge(item.entry.update.status, item.entry.update.createdAt).text }}
                       </span>
                     </div>
                     <p class="mb-1 text-xs text-ink/90">{{ item.entry.update.description }}</p>
