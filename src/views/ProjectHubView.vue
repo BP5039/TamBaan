@@ -9,6 +9,7 @@ import { useTasksStore } from '@/stores/tasks'
 import { useProgressStore } from '@/stores/progress'
 import { usePublicProfileStore } from '@/stores/publicProfile'
 import { labelForCategory } from '@/constants/workCategories'
+import { DAYS_PER_TASK } from '@/constants/projectTypes'
 import { formatExif } from '@/utils/exif'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import StarRating from '@/components/ui/StarRating.vue'
@@ -415,12 +416,24 @@ onMounted(() => {
   clockInterval = setInterval(tick, 60_000)
 })
 
-// Delayed only once the deadline has actually passed with work still
-// outstanding — a separate, softer "at risk" warning based on task count is
-// still an open design question, deliberately not built yet.
+// Delayed once the deadline has actually passed with work still outstanding —
+// the harder of the two warnings, so it takes priority over "at risk" below.
 const isDelayed = computed(() => {
   if (!project.value || project.value.status !== 'active') return false
   return new Date(project.value.plannedEndDate).getTime() < now.value && !allTasksDone.value
+})
+
+// Softer, earlier warning: given the remaining tasks and this project's scope
+// (a "Quick fix" paces faster than a "New build" even at the same task
+// count), is there realistically enough runway left before the deadline?
+// Never fires once isDelayed already has — that's the harder signal.
+const isAtRisk = computed(() => {
+  if (!project.value || project.value.status !== 'active' || isDelayed.value || allTasksDone.value) return false
+  const remainingTasks = tasksStore.tasks.filter((t) => t.status !== 'done').length
+  if (remainingTasks === 0) return false
+  const expectedDaysNeeded = remainingTasks * DAYS_PER_TASK[project.value.projectType]
+  const daysRemaining = (new Date(project.value.plannedEndDate).getTime() - now.value) / DAY_MS
+  return daysRemaining > 0 && expectedDaysNeeded > daysRemaining
 })
 
 function formatCountdown(expiresAt: number | null): string {
@@ -479,6 +492,9 @@ onUnmounted(() => {
           </span>
           <span v-if="isDelayed" class="rounded-lg bg-error-bg px-2.5 py-1 text-xs font-medium text-error-text">
             Delayed
+          </span>
+          <span v-else-if="isAtRisk" class="rounded-lg border border-dashed border-muted px-2.5 py-1 text-xs font-medium text-muted">
+            At risk
           </span>
         </div>
       </div>

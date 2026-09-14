@@ -47,7 +47,7 @@ service cloud.firestore {
         // Homeowner: edit project details — only while no invite is out yet.
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-            ['name', 'description', 'location', 'plannedStartDate', 'plannedEndDate', 'referenceImages', 'updatedAt']
+            ['name', 'description', 'location', 'plannedStartDate', 'plannedEndDate', 'referenceImages', 'projectType', 'updatedAt']
           ) &&
           request.auth.uid == resource.data.homeownerUid &&
           resource.data.status == 'pending' &&

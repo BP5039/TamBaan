@@ -1,5 +1,7 @@
 export type ProjectStatus = 'pending' | 'active' | 'completed'
 
+export type ProjectType = 'quick_fix' | 'renovation' | 'new_build'
+
 export interface ProjectReview {
   workQuality: number
   communication: number
@@ -16,6 +18,7 @@ export interface Project {
   location: string
   plannedStartDate: string
   plannedEndDate: string
+  projectType: ProjectType
   status: ProjectStatus
   homeownerUid: string
   homeownerName: string
