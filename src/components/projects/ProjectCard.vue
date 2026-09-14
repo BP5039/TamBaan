@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
 import CardMenu from '@/components/ui/CardMenu.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import type { Project } from '@/types/project'
 
 const props = defineProps<{ project: Project }>()
@@ -18,8 +19,14 @@ const canDelete = computed(
     !props.project.contractorUid,
 )
 
-async function handleDelete() {
-  if (!window.confirm('Delete this project? This can\'t be undone.')) return
+const showDeleteConfirm = ref(false)
+
+function handleDelete() {
+  showDeleteConfirm.value = true
+}
+
+async function confirmDelete() {
+  showDeleteConfirm.value = false
   await projectsStore.deleteProject(props.project)
 }
 
@@ -67,5 +74,14 @@ function statusLabel(status: string) {
         {{ project.plannedStartDate }} → {{ project.plannedEndDate }}
       </p>
     </div>
+
+    <ConfirmDialog
+      v-if="showDeleteConfirm"
+      title="Delete this project?"
+      message="This can't be undone."
+      danger
+      @cancel="showDeleteConfirm = false"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>
