@@ -130,8 +130,11 @@ export const useProgressStore = defineStore('progress', {
         updatedAt: Date.now(),
       }
 
-      const docRef = await addDoc(collection(db, 'projects', projectId, 'updates'), payload)
-      this.updates.unshift({ id: docRef.id, ...payload })
+      await addDoc(collection(db, 'projects', projectId, 'updates'), payload)
+
+      // Not unshifted into local state here — the live subscribeToUpdates
+      // listener already picks this up. Doing it manually raced it and
+      // briefly showed the update twice.
 
       await updateDoc(doc(db, 'projects', projectId, 'tasks', taskId), {
         hasProgress: true,

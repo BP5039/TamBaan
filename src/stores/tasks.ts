@@ -104,7 +104,6 @@ export const useTasksStore = defineStore('tasks', {
         updatedAt: Date.now(),
       }
       const docRef = await addDoc(collection(db, 'projects', projectId, 'tasks'), payload)
-      let task = { id: docRef.id, ...payload } as ProjectTask
 
       // Uploaded after the doc exists — Storage rules verify hasProgress by
       // reading the Firestore doc, so it has to be there first.
@@ -116,10 +115,11 @@ export const useTasksStore = defineStore('tasks', {
           referenceImages,
           updatedAt: Date.now(),
         })
-        task = { ...task, referenceImages }
       }
 
-      this.tasks.push(task)
+      // Not pushed into local state here — the live subscribeToTasks
+      // listener already picks this up. Pushing manually raced it and
+      // briefly showed the task twice.
 
       if (contractorUid) {
         const notificationsStore = useNotificationsStore()
