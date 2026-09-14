@@ -1,7 +1,7 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    variant?: 'primary' | 'outline' | 'ghost'
+    variant?: 'primary' | 'outline' | 'ghost' | 'danger'
     type?: 'button' | 'submit'
     loading?: boolean
     disabled?: boolean
@@ -27,6 +27,7 @@ withDefaults(
       variant === 'primary' && 'bg-primary text-white hover:bg-primary-dark',
       variant === 'outline' && 'border border-cream text-ink hover:bg-cream/40',
       variant === 'ghost' && 'text-muted hover:text-ink',
+      variant === 'danger' && 'bg-error text-white hover:bg-error/90',
     ]"
   >
     <svg
