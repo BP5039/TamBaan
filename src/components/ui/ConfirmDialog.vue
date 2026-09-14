@@ -6,6 +6,7 @@ defineProps<{
   message: string
   confirmLabel?: string
   cancelLabel?: string
+  danger?: boolean
 }>()
 
 defineEmits<{ confirm: []; cancel: [] }>()
@@ -20,7 +21,7 @@ defineEmits<{ confirm: []; cancel: [] }>()
         <BaseButton variant="outline" full-width @click="$emit('cancel')">
           {{ cancelLabel ?? 'Cancel' }}
         </BaseButton>
-        <BaseButton full-width @click="$emit('confirm')">
+        <BaseButton full-width :class="danger ? 'bg-error hover:bg-error/90' : ''" @click="$emit('confirm')">
           {{ confirmLabel ?? 'Confirm' }}
         </BaseButton>
       </div>

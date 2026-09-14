@@ -22,6 +22,7 @@ import CardMenu from '@/components/ui/CardMenu.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import type { ProjectTask, ProgressUpdate } from '@/types/project'
 import type { PortfolioImage } from '@/types'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -281,19 +282,33 @@ function openEditTask(task: ProjectTask) {
   showTaskModal.value = true
 }
 
-async function handleTaskDelete(taskId: string) {
-  if (!window.confirm("Delete this task? This can't be undone.")) return
-  try {
-    await tasksStore.deleteTask(projectId.value, taskId)
-  } catch {
-    tasksStore.error = "This task can't be deleted — progress has already been logged against it."
-  }
+// One shared confirm-modal state for every "this can't be undone" action on
+// this page, instead of the browser's plain window.confirm().
+const confirmState = ref<{ title: string; message: string; danger: boolean; run: () => void } | null>(null)
+function askConfirm(title: string, message: string, danger: boolean, run: () => void) {
+  confirmState.value = { title, message, danger, run }
+}
+function runConfirmed() {
+  const run = confirmState.value?.run
+  confirmState.value = null
+  run?.()
 }
 
-async function verify(updateId: string) {
-  if (!window.confirm("Confirm this work? This can't be undone.")) return
-  const update = progressStore.updates.find((u) => u.id === updateId)
-  await progressStore.verifyUpdate(projectId.value, updateId, project.value!.contractorUid!, update?.taskTitle ?? '', project.value?.name ?? '')
+function handleTaskDelete(taskId: string) {
+  askConfirm("Delete this task?", "This can't be undone.", true, async () => {
+    try {
+      await tasksStore.deleteTask(projectId.value, taskId)
+    } catch {
+      tasksStore.error = "This task can't be deleted — progress has already been logged against it."
+    }
+  })
+}
+
+function verify(updateId: string) {
+  askConfirm("Confirm this work?", "This can't be undone.", false, async () => {
+    const update = progressStore.updates.find((u) => u.id === updateId)
+    await progressStore.verifyUpdate(projectId.value, updateId, project.value!.contractorUid!, update?.taskTitle ?? '', project.value?.name ?? '')
+  })
 }
 
 function startSendBack(updateId: string) {
@@ -306,22 +321,23 @@ function cancelSendBack() {
   sendBackTargetId.value = null
 }
 
-async function confirmSendBack(updateId: string) {
+function confirmSendBack(updateId: string) {
   if (!sendBackReason.value.trim()) {
     sendBackError.value = 'Explain what needs fixing.'
     return
   }
-  if (!window.confirm("Send this back to the professional? This can't be undone.")) return
-  const update = progressStore.updates.find((u) => u.id === updateId)
-  await progressStore.sendBackUpdate(
-    projectId.value,
-    updateId,
-    sendBackReason.value.trim(),
-    project.value!.contractorUid!,
-    update?.taskTitle ?? '',
-    project.value?.name ?? '',
-  )
-  sendBackTargetId.value = null
+  askConfirm("Send this back to the professional?", "This can't be undone.", true, async () => {
+    const update = progressStore.updates.find((u) => u.id === updateId)
+    await progressStore.sendBackUpdate(
+      projectId.value,
+      updateId,
+      sendBackReason.value.trim(),
+      project.value!.contractorUid!,
+      update?.taskTitle ?? '',
+      project.value?.name ?? '',
+    )
+    sendBackTargetId.value = null
+  })
 }
 
 function statusBadge(status: string, createdAt?: number) {
@@ -937,6 +953,15 @@ onUnmounted(() => {
       :project-name="project?.name ?? ''"
       @close="showTaskModal = false"
       @saved="showTaskModal = false"
+    />
+
+    <ConfirmDialog
+      v-if="confirmState"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :danger="confirmState.danger"
+      @cancel="confirmState = null"
+      @confirm="runConfirmed"
     />
 
     <PortfolioLightbox
