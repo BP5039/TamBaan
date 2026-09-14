@@ -8,8 +8,9 @@ import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { THAI_PROVINCES } from '@/constants/provinces'
+import { PROJECT_TYPE_OPTIONS } from '@/constants/projectTypes'
 import { validateImageFile } from '@/constants/fileValidation'
-import type { Project } from '@/types/project'
+import type { Project, ProjectType } from '@/types/project'
 import type { PortfolioImage } from '@/types'
 
 const props = defineProps<{ project?: Project }>()
@@ -22,6 +23,7 @@ const isEditMode = computed(() => !!props.project)
 const MAX_IMAGES = 5
 
 const name = ref(props.project?.name ?? '')
+const projectType = ref<ProjectType>(props.project?.projectType ?? 'renovation')
 const description = ref(props.project?.description ?? '')
 const plannedStartDate = ref(props.project?.plannedStartDate ?? '')
 const plannedEndDate = ref(props.project?.plannedEndDate ?? '')
@@ -94,6 +96,7 @@ async function submit() {
 
   const data = {
     name: name.value.trim(),
+    projectType: projectType.value,
     description: description.value.trim(),
     location: location.value,
     plannedStartDate: plannedStartDate.value,
@@ -129,6 +132,7 @@ async function submit() {
 </script>
 
 <template>
+  <Teleport to="body">
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
     <div class="relative w-full max-w-sm rounded-card bg-white p-5">
       <div v-if="saving" class="absolute inset-0 z-10 rounded-card bg-white/60" />
@@ -147,6 +151,16 @@ async function submit() {
         required
         class="mb-4"
         />
+        <div class="mb-4">
+          <span class="mb-1.5 block text-sm font-medium text-ink">Project type</span>
+          <p class="mb-1.5 text-xs text-muted">Used to judge whether the schedule still looks realistic as work progresses.</p>
+          <select
+            v-model="projectType"
+            class="w-full rounded-lg border border-cream bg-white px-3 py-2.5 text-sm text-ink focus:outline-none"
+          >
+            <option v-for="opt in PROJECT_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
         <BaseSelect
         v-model="location"
         label="Location"
@@ -233,4 +247,5 @@ async function submit() {
       </fieldset>
     </div>
   </div>
+  </Teleport>
 </template>

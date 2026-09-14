@@ -56,6 +56,7 @@ async function submit() {
 </script>
 
 <template>
+  <Teleport to="body">
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
     <div class="w-full max-w-sm rounded-card bg-white p-5">
       <h2 class="mb-1 text-lg font-semibold text-ink">Invite to project</h2>
@@ -96,4 +97,5 @@ async function submit() {
       </div>
     </div>
   </div>
+  </Teleport>
 </template>

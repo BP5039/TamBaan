@@ -113,6 +113,7 @@ async function submit() {
 </script>
 
 <template>
+  <Teleport to="body">
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
     <div class="relative w-full max-w-sm rounded-card bg-white p-5">
       <div v-if="saving" class="absolute inset-0 z-10 rounded-card bg-white/60" />
@@ -204,4 +205,5 @@ async function submit() {
       </fieldset>
     </div>
   </div>
+  </Teleport>
 </template>
