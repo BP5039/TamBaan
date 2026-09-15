@@ -51,8 +51,8 @@ watch(username, load)
 <template>
   <div class="flex h-full flex-col overflow-hidden">
     <div class="flex w-full flex-1 flex-col overflow-hidden px-[15%] py-8">
-      <BaseButton variant="ghost" class="mb-4 flex-shrink-0 self-start" @click="router.push('/discover')">
-        ← Back to search
+      <BaseButton variant="ghost" class="mb-4 flex-shrink-0 self-start" @click="router.back()">
+        ← Back
       </BaseButton>
 
       <p v-if="publicProfileStore.loading" class="py-10 text-center text-sm text-muted">Loading…</p>

@@ -525,7 +525,7 @@ onUnmounted(() => {
 
 <template>
   <div class="w-full px-[15%] py-8">
-    <BaseButton variant="ghost" class="mb-4" @click="router.push('/projects')">
+    <BaseButton variant="ghost" class="mb-4" @click="router.back()">
       ← Back
     </BaseButton>
 
