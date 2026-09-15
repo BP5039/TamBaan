@@ -337,6 +337,88 @@ function toggleTask(taskId: string) {
   expandedTaskId.value = expandedTaskId.value === taskId ? null : taskId
 }
 
+function taskCardId(taskId: string) {
+  return `task-card-${taskId}`
+}
+
+// Clicking an Activity entry expands that task's card wherever it sits in
+// the board, and scrolls it into view — the log and the board are two views
+// onto the same data, so jumping between them should feel connected.
+function jumpToTask(taskId: string) {
+  expandedTaskId.value = taskId
+  nextTick(() => {
+    document.getElementById(taskCardId(taskId))?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+  })
+}
+
+function monthLabel(ts: number) {
+  return new Date(ts).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+}
+
+interface ActivityEntry {
+  key: string
+  sortAt: number
+  taskId: string
+  taskTitle: string
+  label: string
+  dotClass: string
+}
+
+// Reconstructed from the update docs themselves rather than a separate event
+// log — every update starts "uploaded" at createdAt, and if it's since been
+// reviewed, a second entry captures that transition at updatedAt.
+const activityEntries = computed<ActivityEntry[]>(() => {
+  const entries: ActivityEntry[] = []
+  for (const u of progressStore.updates) {
+    entries.push({
+      key: `${u.id}-uploaded`,
+      sortAt: u.createdAt,
+      taskId: u.taskId,
+      taskTitle: u.taskTitle,
+      label: 'uploaded',
+      dotClass: 'bg-pending',
+    })
+    if (u.status === 'verified') {
+      entries.push({
+        key: `${u.id}-verified`,
+        sortAt: u.updatedAt,
+        taskId: u.taskId,
+        taskTitle: u.taskTitle,
+        label: 'verified',
+        dotClass: 'bg-success',
+      })
+    } else if (u.status === 'sent_back') {
+      entries.push({
+        key: `${u.id}-sent_back`,
+        sortAt: u.updatedAt,
+        taskId: u.taskId,
+        taskTitle: u.taskTitle,
+        label: 'sent back',
+        dotClass: 'bg-error',
+      })
+    }
+  }
+  return entries.sort((a, b) => a.sortAt - b.sortAt)
+})
+
+type ActivityRowItem =
+  | { type: 'divider'; key: string; label: string }
+  | { type: 'entry'; key: string; entry: ActivityEntry }
+
+const activityRow = computed<ActivityRowItem[]>(() => {
+  const items: ActivityRowItem[] = []
+  let lastMonth = ''
+  for (const entry of activityEntries.value) {
+    const label = monthLabel(entry.sortAt)
+    if (label !== lastMonth) {
+      items.push({ type: 'divider', key: `divider-${label}`, label })
+      lastMonth = label
+    }
+    items.push({ type: 'entry', key: entry.key, entry })
+  }
+  return items
+})
+
 // ---- Load everything this page needs ----
 
 function load() {
@@ -722,6 +804,7 @@ onUnmounted(() => {
           <div class="space-y-2">
             <div
               v-for="task in tasksByStatus[column.status]"
+              :id="taskCardId(task.id)"
               :key="task.id"
               class="overflow-hidden rounded-lg border bg-white"
               :class="column.status === 'not_started' ? 'border-dashed border-cream' : 'border-cream'"
@@ -868,6 +951,55 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+      </template>
+
+      <!-- Activity — a lightweight log, not the interactive surface. Same
+           continuous-line visual flow as the old Timeline, but compact
+           entries instead of big cards; clicking one expands the task above. -->
+      <template v-if="project.status !== 'pending'">
+      <h2 class="mb-6 text-lg font-semibold text-ink">Activity</h2>
+
+      <p
+        v-if="!activityRow.length"
+        class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
+      >
+        No activity yet.
+      </p>
+
+      <div v-else class="sm:overflow-x-auto sm:pb-4">
+        <div class="relative flex flex-col gap-6 sm:flex-row sm:w-max sm:items-start sm:gap-6">
+        <div
+          class="absolute left-[7px] top-0 bottom-0 w-0.5 bg-cream sm:left-3.5 sm:right-3.5 sm:top-[7px] sm:bottom-auto sm:h-0.5 sm:w-auto"
+        />
+
+        <template v-for="item in activityRow" :key="item.key">
+          <div v-if="item.type === 'divider'" class="relative z-10 flex-shrink-0 sm:flex sm:h-3.5 sm:items-center">
+            <span class="inline-block whitespace-nowrap rounded-full border border-cream bg-white px-3 py-1 text-xs font-semibold text-wood-text">
+              {{ item.label }}
+            </span>
+          </div>
+
+          <button
+            v-else
+            type="button"
+            class="relative flex gap-3 text-left sm:w-32 sm:flex-shrink-0 sm:flex-col sm:items-center sm:gap-0"
+            @click="jumpToTask(item.entry.taskId)"
+          >
+            <span
+              class="z-10 mt-0.5 h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-white sm:mt-0"
+              :class="item.entry.dotClass"
+            />
+            <div class="min-w-0 flex-1 sm:mt-2 sm:w-full sm:text-center">
+              <p class="text-[10px] text-muted">
+                {{ new Date(item.entry.sortAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }}
+              </p>
+              <p class="truncate text-xs font-medium text-ink">{{ item.entry.taskTitle }}</p>
+              <p class="text-[10px] text-muted">{{ item.entry.label }}</p>
+            </div>
+          </button>
+        </template>
         </div>
       </div>
       </template>
