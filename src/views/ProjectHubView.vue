@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '@/firebase/config'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
 import { useTasksStore } from '@/stores/tasks'
@@ -68,24 +66,6 @@ const lightboxStartIndex = ref(0)
 function openLightbox(images: PortfolioImage[], startIndex = 0) {
   lightboxImages.value = images
   lightboxStartIndex.value = startIndex
-}
-
-interface HomeownerContact {
-  phone: string
-  lineId: string | null
-  facebookId: string | null
-}
-const homeownerContact = ref<HomeownerContact | null>(null)
-
-async function loadHomeownerContact() {
-  homeownerContact.value = null
-  if (!isContractor.value || !project.value) return
-  try {
-    const snap = await getDoc(doc(db, 'projects', project.value.id, 'private', 'contact'))
-    if (snap.exists()) homeownerContact.value = snap.data() as HomeownerContact
-  } catch (err) {
-    console.error('loadHomeownerContact failed:', err)
-  }
 }
 
 const contractorSummary = computed(() => {
@@ -429,20 +409,14 @@ function load() {
 
 watch(projectId, load, { immediate: true })
 
-// Homeowner contact and the contractor's public profile depend on who the
-// contractor actually is, which only becomes known once the live project
-// snapshot arrives — so these re-run whenever that changes, rather than
-// living inside load() itself.
+// The contractor's public profile depends on who the contractor actually is,
+// which only becomes known once the live project snapshot arrives — so this
+// re-runs whenever that changes, rather than living inside load() itself.
 watch(
-  () => project.value?.contractorUid,
-  async (contractorUid) => {
-    if (!contractorUid) {
-      homeownerContact.value = null
-      return
-    }
-    await loadHomeownerContact()
-    if (project.value?.contractorUsername) {
-      await publicProfileStore.loadByUsername(project.value.contractorUsername)
+  () => project.value?.contractorUsername,
+  async (contractorUsername) => {
+    if (contractorUsername) {
+      await publicProfileStore.loadByUsername(contractorUsername)
     }
   },
   { immediate: true },
@@ -594,16 +568,16 @@ onUnmounted(() => {
             </span>
           </div>
 
-          <p class="text-sm font-semibold text-ink">{{ project.name }}</p>
+          <p class="mb-1.5 text-sm font-semibold text-ink">{{ project.name }}</p>
           <p
             v-if="project.description"
             ref="descriptionEl"
-            class="mb-2 mt-1 text-xs text-ink/90"
+            class="mb-3 text-xs text-ink/90"
             :class="descriptionWraps ? 'text-left' : 'text-center'"
           >
             {{ project.description }}
           </p>
-          <p class="mb-1 text-xs text-muted">
+          <p class="mb-1.5 text-xs text-muted">
             Planned: {{ project.plannedStartDate }} → {{ project.plannedEndDate }}
           </p>
           <p class="text-xs text-ink">
@@ -772,13 +746,6 @@ onUnmounted(() => {
           <p class="mb-1.5 text-sm font-semibold text-ink">Completion</p>
           <p class="text-xs text-muted">The homeowner will mark this complete once every task is verified.</p>
         </div>
-      </div>
-
-      <div v-if="isContractor && homeownerContact" class="mb-12 rounded-card border border-cream bg-white p-4">
-        <p class="mb-2 text-sm font-semibold text-ink">Homeowner contact</p>
-        <p class="text-sm text-ink">{{ homeownerContact.phone }}</p>
-        <p v-if="homeownerContact.lineId" class="text-xs text-ink">LINE: {{ homeownerContact.lineId }}</p>
-        <p v-if="homeownerContact.facebookId" class="text-xs text-ink">FB: {{ homeownerContact.facebookId }}</p>
       </div>
 
       <!-- Tasks, as a Kanban board — collapsed rows expand on click. -->
