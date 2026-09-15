@@ -20,7 +20,7 @@ import TaskModal from '@/components/projects/TaskModal.vue'
 import PortfolioLightbox from '@/components/profile/PortfolioLightbox.vue'
 import CardMenu from '@/components/ui/CardMenu.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
-import type { ProjectTask, ProgressUpdate } from '@/types/project'
+import type { ProjectTask, ProgressUpdate, TaskStatus } from '@/types/project'
 import type { PortfolioImage } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
@@ -171,6 +171,38 @@ const statusLabel = computed(() => {
       return { text: 'Pending', variant: 'pending' }
   }
 })
+
+// ---- Tasks (Kanban board) — added alongside the Timeline for now; the
+// Timeline gets removed in a follow-up commit once this is confirmed working. ----
+
+const TASK_COLUMNS: { status: TaskStatus; label: string }[] = [
+  { status: 'not_started', label: 'Not started' },
+  { status: 'awaiting_review', label: 'Awaiting review' },
+  { status: 'sent_back', label: 'Sent back' },
+  { status: 'done', label: 'Done' },
+]
+
+const tasksByStatus = computed(() => {
+  const map: Record<TaskStatus, ProjectTask[]> = {
+    not_started: [],
+    awaiting_review: [],
+    sent_back: [],
+    done: [],
+  }
+  for (const t of tasksStore.tasks) map[t.status].push(t)
+  return map
+})
+
+// A task's most recent update — progressStore.updates is already ordered
+// newest-first, so .find() naturally gets the one matching its current status.
+function latestUpdateFor(taskId: string): ProgressUpdate | undefined {
+  return progressStore.updates.find((u) => u.taskId === taskId)
+}
+
+const expandedTaskId = ref<string | null>(null)
+function toggleTask(taskId: string) {
+  expandedTaskId.value = expandedTaskId.value === taskId ? null : taskId
+}
 
 // ---- Timeline (merged directly into this page) ----
 
@@ -726,6 +758,180 @@ onUnmounted(() => {
         <p v-if="homeownerContact.lineId" class="text-xs text-ink">LINE: {{ homeownerContact.lineId }}</p>
         <p v-if="homeownerContact.facebookId" class="text-xs text-ink">FB: {{ homeownerContact.facebookId }}</p>
       </div>
+
+      <!-- Tasks, as a Kanban board — added alongside the Timeline for now.
+           Collapsed rows expand on click. -->
+      <template v-if="project.status !== 'pending'">
+      <div class="mb-6 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-ink">Tasks</h2>
+        <BaseButton v-if="isHomeowner" @click="openAddTask">+ Add task</BaseButton>
+      </div>
+
+      <p
+        v-if="!tasksStore.tasks.length"
+        class="mb-12 rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
+      >
+        No tasks yet.
+      </p>
+
+      <div v-else class="mb-12 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-4 sm:overflow-visible sm:pb-0">
+        <div v-for="column in TASK_COLUMNS" :key="column.status" class="w-full flex-shrink-0 snap-center sm:w-auto">
+          <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
+            {{ column.label }} · {{ tasksByStatus[column.status].length }}
+          </p>
+
+          <div class="space-y-2">
+            <div
+              v-for="task in tasksByStatus[column.status]"
+              :key="task.id"
+              class="overflow-hidden rounded-lg border bg-white"
+              :class="column.status === 'not_started' ? 'border-dashed border-cream' : 'border-cream'"
+            >
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-2 p-2.5 text-left"
+                @click="toggleTask(task.id)"
+              >
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-semibold text-ink">{{ task.title }}</span>
+                  <span
+                    v-if="task.status === 'awaiting_review' && latestUpdateFor(task.id)"
+                    class="mt-1 inline-block rounded-lg px-1.5 py-0.5 text-[10px] font-medium"
+                    :class="statusBadge(task.status, latestUpdateFor(task.id)!.createdAt).class"
+                  >
+                    {{ statusBadge(task.status, latestUpdateFor(task.id)!.createdAt).text }}
+                  </span>
+                </span>
+                <svg
+                  class="h-3.5 w-3.5 flex-shrink-0 text-muted transition-transform"
+                  :class="{ 'rotate-180': expandedTaskId === task.id }"
+                  viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+                </svg>
+              </button>
+
+              <div v-if="expandedTaskId === task.id" class="border-t border-cream p-2.5">
+                <template v-if="task.status === 'not_started'">
+                  <div class="relative mb-2">
+                    <button
+                      type="button"
+                      class="block aspect-[4/3] w-full overflow-hidden rounded-lg bg-surface"
+                      @click="task.referenceImages?.length ? openLightbox(task.referenceImages) : undefined"
+                    >
+                      <img
+                        v-if="task.referenceImages?.length"
+                        :src="task.referenceImages[0].thumb"
+                        alt=""
+                        class="h-full w-full object-cover"
+                      />
+                      <div v-else class="flex h-full w-full items-center justify-center">
+                        <svg class="h-6 w-6 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5V6.75A2.25 2.25 0 015.25 4.5h2.379a1.5 1.5 0 001.06-.44l.842-.84A1.5 1.5 0 0110.6 2.75h2.8a1.5 1.5 0 011.06.44l.842.84a1.5 1.5 0 001.06.44h2.379A2.25 2.25 0 0121 6.75v9.75a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 16.5z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11.25a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                    </button>
+                    <div v-if="isHomeowner" class="absolute right-1.5 top-1.5">
+                      <CardMenu
+                        :items="[
+                          { label: 'Edit', action: () => openEditTask(task) },
+                          { label: 'Delete', action: () => handleTaskDelete(task.id), variant: 'danger' },
+                        ]"
+                      />
+                    </div>
+                  </div>
+                  <p class="mb-2 text-xs text-ink/90">{{ task.description }}</p>
+                  <BaseButton v-if="isContractor" full-width @click="openUploadFor(task.id)">
+                    Upload progress
+                  </BaseButton>
+                </template>
+
+                <template v-else-if="task.status === 'awaiting_review' && latestUpdateFor(task.id)">
+                  <button
+                    type="button"
+                    class="mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                    @click="openLightbox(latestUpdateFor(task.id)!.images)"
+                  >
+                    <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                  </button>
+                  <p class="mb-1 text-xs text-ink/90">{{ latestUpdateFor(task.id)!.description }}</p>
+                  <p class="mb-2 text-[11px] text-muted">
+                    {{ new Date(latestUpdateFor(task.id)!.createdAt).toLocaleDateString() }}
+                    <span v-if="latestUpdateFor(task.id)!.exifTimestamp || latestUpdateFor(task.id)!.exifDevice">
+                      · {{ formatExif({ timestamp: latestUpdateFor(task.id)!.exifTimestamp, device: latestUpdateFor(task.id)!.exifDevice }) }}
+                    </span>
+                  </p>
+
+                  <template v-if="isHomeowner">
+                    <div v-if="sendBackTargetId === latestUpdateFor(task.id)!.id" class="mt-2">
+                      <textarea
+                        v-model="sendBackReason"
+                        rows="2"
+                        placeholder="What needs fixing?"
+                        class="mb-1 w-full resize-none rounded-lg border border-cream px-2.5 py-1.5 text-xs text-ink focus:outline-none"
+                      />
+                      <p v-if="sendBackError" class="mb-1 text-[11px] text-error-text">{{ sendBackError }}</p>
+                      <div class="flex gap-2">
+                        <button type="button" class="flex-1 rounded-lg border border-cream py-1.5 text-xs font-medium text-muted hover:bg-cream/40" @click="cancelSendBack">
+                          Cancel
+                        </button>
+                        <button type="button" class="flex-1 rounded-lg bg-error py-1.5 text-xs font-semibold text-white hover:opacity-90" @click="confirmSendBack(latestUpdateFor(task.id)!.id)">
+                          Confirm send back
+                        </button>
+                      </div>
+                    </div>
+                    <div v-else class="flex gap-2">
+                      <button
+                        type="button"
+                        class="flex-1 rounded-lg border border-error-border py-1.5 text-xs font-semibold text-error hover:bg-error-bg"
+                        @click="startSendBack(latestUpdateFor(task.id)!.id)"
+                      >
+                        Send back
+                      </button>
+                      <button
+                        type="button"
+                        class="flex-1 rounded-lg bg-primary py-1.5 text-xs font-semibold text-white hover:bg-primary-dark"
+                        @click="verify(latestUpdateFor(task.id)!.id)"
+                      >
+                        Confirm
+                      </button>
+                    </div>
+                  </template>
+                </template>
+
+                <template v-else-if="task.status === 'sent_back' && latestUpdateFor(task.id)">
+                  <button
+                    type="button"
+                    class="mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                    @click="openLightbox(latestUpdateFor(task.id)!.images)"
+                  >
+                    <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                  </button>
+                  <p class="mb-2 rounded-lg bg-error-bg p-2 text-xs text-error-text">
+                    {{ latestUpdateFor(task.id)!.sentBackReason }}
+                  </p>
+                  <BaseButton v-if="isContractor" variant="outline" full-width @click="openUploadFor(task.id)">
+                    Retry upload
+                  </BaseButton>
+                </template>
+
+                <template v-else-if="task.status === 'done' && latestUpdateFor(task.id)">
+                  <button
+                    type="button"
+                    class="mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                    @click="openLightbox(latestUpdateFor(task.id)!.images)"
+                  >
+                    <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                  </button>
+                  <p class="text-xs text-ink/90">{{ latestUpdateFor(task.id)!.description }}</p>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </template>
 
       <!-- Timeline, merged directly into this page — only once there's actually
            an active collaboration; an invite that hasn't been accepted yet
