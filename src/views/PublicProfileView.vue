@@ -4,8 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePublicProfileStore } from '@/stores/publicProfile'
 import { usePortfolioStore } from '@/stores/portfolio'
+import { useProjectsStore } from '@/stores/projects'
 import { labelForCategory } from '@/constants/workCategories'
 import PortfolioItemCard from '@/components/profile/PortfolioItemCard.vue'
+import ProjectCard from '@/components/projects/ProjectCard.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import InviteToProjectModal from '@/components/projects/InviteToProjectModal.vue'
@@ -17,6 +19,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const publicProfileStore = usePublicProfileStore()
 const portfolioStore = usePortfolioStore()
+const projectsStore = useProjectsStore()
 
 const username = computed(() => route.params.username as string)
 const isProfessional = computed(() => publicProfileStore.profile?.role === 'professional')
@@ -41,6 +44,8 @@ async function load() {
   await publicProfileStore.loadByUsername(username.value)
   if (publicProfileStore.profile?.role === 'professional') {
     await portfolioStore.fetchItems(publicProfileStore.profile.uid)
+  } else if (publicProfileStore.profile?.role === 'homeowner') {
+    await projectsStore.fetchMyProjects(publicProfileStore.profile.uid, 'homeowner')
   }
 }
 
@@ -168,9 +173,25 @@ watch(username, load)
                 </p>
               </template>
 
-              <p v-else class="text-sm text-muted">
-                This is a homeowner profile — nothing to show here yet.
-              </p>
+              <template v-else>
+                <div v-if="projectsStore.groupedByYear.length">
+                  <div v-for="group in projectsStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
+                    <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
+                    <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
+                      <ProjectCard
+                        v-for="p in group.items"
+                        :key="p.id"
+                        :project="p"
+                        class="cursor-pointer"
+                        @click="router.push(`/projects/${p.id}`)"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">
+                  No projects yet.
+                </p>
+              </template>
             </div>
           </div>
         </div>

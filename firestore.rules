@@ -34,13 +34,11 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
-      allow read: if resource.data.status == 'completed' || (
-        request.auth != null && (
-          request.auth.uid == resource.data.homeownerUid ||
-          request.auth.uid == resource.data.contractorUid ||
-          request.auth.uid == resource.data.pendingInvitationUid
-        )
-      );
+      // Public for now — a deliberate simplification while this is still in
+      // active development. Was previously gated to participants and
+      // completed-only; intended to be re-tightened once #12 formalizes what
+      // should actually be public vs private.
+      allow read: if true;
       allow create: if request.auth != null &&
         request.auth.uid == request.resource.data.homeownerUid;
       allow update: if request.auth != null && (
