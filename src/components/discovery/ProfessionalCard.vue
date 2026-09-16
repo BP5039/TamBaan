@@ -33,7 +33,7 @@ const isMatched = computed(() => !!matchedItem.value)
 <template>
   <button
     type="button"
-    class="w-full rounded-card border border-cream bg-white p-3.5 text-left transition hover:border-primary/50"
+    class="flex h-full w-full flex-col rounded-card border border-cream bg-white p-3.5 text-left transition hover:border-primary/50"
     @click="openProfile"
   >
     <div class="mb-2 flex items-center gap-2.5">
@@ -73,20 +73,31 @@ const isMatched = computed(() => !!matchedItem.value)
     </div>
 
     <div
-      v-if="previewItem"
-      class="flex items-center gap-2"
-      :class="isMatched ? '-mx-3.5 -mb-3.5 rounded-b-card bg-success-bg px-3.5 py-2.5' : 'border-t border-cream pt-2'"
+      v-if="previewItem && isMatched"
+      class="-mx-3.5 -mb-3.5 mt-auto flex items-center gap-2 rounded-b-card bg-success-bg px-3.5 py-2.5"
     >
       <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-sand">
         <img v-if="previewItem.thumbUrl" :src="previewItem.thumbUrl" alt="" class="h-full w-full object-cover" />
       </div>
       <div class="min-w-0">
-        <p class="text-[10px] font-bold" :class="isMatched ? 'text-success-text' : 'text-[#5A5344]'">
-          {{ isMatched ? '✓ Matched your search' : 'Most recent work' }}
-        </p>
+        <p class="text-[10px] font-bold text-success-text">✓ Matched your search</p>
         <p class="truncate text-[11px] text-ink">{{ previewItem.title }}</p>
       </div>
     </div>
-    <p v-else class="border-t border-cream pt-2 text-[11px] italic text-muted">No work uploaded yet</p>
+
+    <div v-else class="mt-2 flex flex-1 flex-col border-t border-cream pt-2">
+      <div v-if="previewItem" class="flex flex-1 items-center gap-2">
+        <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-sand">
+          <img v-if="previewItem.thumbUrl" :src="previewItem.thumbUrl" alt="" class="h-full w-full object-cover" />
+        </div>
+        <div class="min-w-0">
+          <p class="text-[10px] font-bold text-[#5A5344]">Most recent work</p>
+          <p class="truncate text-[11px] text-ink">{{ previewItem.title }}</p>
+        </div>
+      </div>
+      <p v-else class="flex flex-1 items-center justify-center text-center text-[11px] italic text-muted">
+        No work uploaded yet
+      </p>
+    </div>
   </button>
 </template>
