@@ -74,10 +74,10 @@ const isMatched = computed(() => !!matchedItem.value)
 
     <div
       v-if="previewItem"
-      class="-mx-3.5 -mb-3.5 flex items-center gap-2 rounded-b-card px-3.5 py-2.5"
-      :class="isMatched ? 'bg-success-bg' : 'bg-surface'"
+      class="flex items-center gap-2"
+      :class="isMatched ? '-mx-3.5 -mb-3.5 rounded-b-card bg-success-bg px-3.5 py-2.5' : 'border-t border-cream pt-2'"
     >
-      <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-cream">
+      <div class="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-sand">
         <img v-if="previewItem.thumbUrl" :src="previewItem.thumbUrl" alt="" class="h-full w-full object-cover" />
       </div>
       <div class="min-w-0">
