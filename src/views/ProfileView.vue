@@ -152,7 +152,7 @@ async function logout() {
         <div class="flex flex-col overflow-hidden">
           <div class="mb-4 flex flex-shrink-0 items-center justify-between">
             <h2 class="text-sm font-medium text-muted">
-              {{ isProfessional ? 'Previous work' : 'My projects' }}
+              My projects
             </h2>
             <BaseButton v-if="isProfessional" @click="openAddModal">+ Add work</BaseButton>
             <BaseButton v-else @click="showCreateProjectModal = true">+ Create project</BaseButton>

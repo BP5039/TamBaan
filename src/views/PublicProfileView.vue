@@ -36,6 +36,22 @@ const canInvite = computed(
     !isOwnProfile.value,
 )
 
+// Public view — never shows active/pending projects, even to the owner
+// previewing their own page. That's what "preview" means: the same thing
+// everyone else sees.
+const completedProjects = computed(() => projectsStore.myProjects.filter((p) => p.status === 'completed'))
+const completedProjectsByYear = computed(() => {
+  const map = new Map<number, typeof completedProjects.value>()
+  for (const p of completedProjects.value) {
+    const year = p.plannedStartDate ? new Date(p.plannedStartDate).getFullYear() : 0
+    if (!map.has(year)) map.set(year, [])
+    map.get(year)!.push(p)
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => b[0] - a[0])
+    .map(([year, items]) => ({ year, items }))
+})
+
 function onInviteSent() {
   showInviteModal.value = false
 }
@@ -117,15 +133,13 @@ watch(username, load)
               {{ formatLastSeen(publicProfileStore.profile.lastActiveAt) }}
             </p>
 
-            <template v-if="isProfessional">
-              <p class="mt-2 text-xs text-muted">{{ publicProfileStore.profile.phone }}</p>
-              <p v-if="publicProfileStore.profile.lineId" class="text-xs text-muted">
-                LINE: {{ publicProfileStore.profile.lineId }}
-              </p>
-              <p v-if="publicProfileStore.profile.facebookId" class="text-xs text-muted">
-                FB: {{ publicProfileStore.profile.facebookId }}
-              </p>
-            </template>
+            <p class="mt-2 text-xs text-muted">{{ publicProfileStore.profile.phone }}</p>
+            <p v-if="publicProfileStore.profile.lineId" class="text-xs text-muted">
+              LINE: {{ publicProfileStore.profile.lineId }}
+            </p>
+            <p v-if="publicProfileStore.profile.facebookId" class="text-xs text-muted">
+              FB: {{ publicProfileStore.profile.facebookId }}
+            </p>
             <p class="text-xs text-muted">{{ publicProfileStore.profile.province }}</p>
 
             <div
@@ -150,7 +164,7 @@ watch(username, load)
 
           <div class="flex flex-col overflow-hidden">
             <h2 class="mb-4 flex-shrink-0 text-sm font-medium text-muted">
-              {{ isProfessional ? 'Previous work' : 'Homeowner' }}
+              Previous work
             </h2>
 
             <div class="flex-1 overflow-y-auto pr-1">
@@ -174,8 +188,8 @@ watch(username, load)
               </template>
 
               <template v-else>
-                <div v-if="projectsStore.groupedByYear.length">
-                  <div v-for="group in projectsStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
+                <div v-if="completedProjectsByYear.length">
+                  <div v-for="group in completedProjectsByYear" :key="group.year" class="mb-6 last:mb-0">
                     <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
                     <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
                       <ProjectCard
@@ -189,7 +203,7 @@ watch(username, load)
                   </div>
                 </div>
                 <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">
-                  No projects yet.
+                  No completed projects yet.
                 </p>
               </template>
             </div>
