@@ -11,6 +11,13 @@ service cloud.firestore {
         )
       );
       allow delete: if false;
+      match /notifications/{notificationId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null;
+        allow update: if request.auth != null && request.auth.uid == userId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+        allow delete: if false;
+      }
       match /portfolio/{itemId} {
         allow read: if true;
         allow create: if request.auth != null && (
