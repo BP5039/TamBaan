@@ -3,6 +3,7 @@ import {
   addDoc,
   collection,
   doc,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -92,6 +93,7 @@ export const useNotificationsStore = defineStore('notifications', {
       message: string,
       projectId: string,
       projectName: string,
+      recipientRole?: 'homeowner' | 'contractor',
     ) {
       try {
         const payload = {
@@ -104,7 +106,12 @@ export const useNotificationsStore = defineStore('notifications', {
           read: false,
           createdAt: Date.now(),
         }
-        await addDoc(collection(db, 'users', recipientUid, 'notifications'), payload)
+        const writes: Promise<unknown>[] = [addDoc(collection(db, 'users', recipientUid, 'notifications'), payload)]
+        if (recipientRole) {
+          const field = recipientRole === 'homeowner' ? 'unreadCountHomeowner' : 'unreadCountContractor'
+          writes.push(updateDoc(doc(db, 'projects', projectId), { [field]: increment(1) }))
+        }
+        await Promise.all(writes)
       } catch (err) {
         console.error('notify failed:', err)
       }
