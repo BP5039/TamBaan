@@ -168,6 +168,7 @@ export const useProjectsStore = defineStore('projects', {
         review: null,
         unreadCountHomeowner: 0,
         unreadCountContractor: 0,
+        createdAt: Date.now(),
         updatedAt: Date.now(),
     }
     const docRef = await addDoc(collection(db, 'projects'), payload)
@@ -218,6 +219,7 @@ export const useProjectsStore = defineStore('projects', {
         `${project.homeownerName} invited you to "${project.name}"`,
         projectId,
         project.name,
+        'contractor',
         )
     }
     },
@@ -243,6 +245,7 @@ export const useProjectsStore = defineStore('projects', {
         `${project.pendingInvitationName} accepted your invite — "${project.name}"`,
         project.id,
         project.name,
+        'homeowner',
     )
     },
 
@@ -263,6 +266,7 @@ export const useProjectsStore = defineStore('projects', {
         `${project.pendingInvitationName} declined your invite — "${project.name}"`,
         project.id,
         project.name,
+        'homeowner',
     )
     },
 
@@ -290,6 +294,7 @@ export const useProjectsStore = defineStore('projects', {
         `Your invite to ${expiredName} for "${project.name}" expired without a response`,
         project.id,
         project.name,
+        'homeowner',
       )
     },
 
@@ -454,6 +459,7 @@ export const useProjectsStore = defineStore('projects', {
         `${project.homeownerName} marked "${project.name}" complete and left a review`,
         project.id,
         project.name,
+        'contractor',
       )
     },
   },
