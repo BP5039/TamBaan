@@ -166,7 +166,8 @@ export const useProjectsStore = defineStore('projects', {
         lastVerifiedPhotoUrl: null,
         referenceImages: [] as PortfolioImage[],
         review: null,
-        createdAt: Date.now(),
+        unreadCountHomeowner: 0,
+        unreadCountContractor: 0,
         updatedAt: Date.now(),
     }
     const docRef = await addDoc(collection(db, 'projects'), payload)

@@ -33,6 +33,8 @@ export interface Project {
   lastVerifiedPhotoUrl: string | null
   referenceImages: { thumb: string; full: string }[]
   review: ProjectReview | null
+  unreadCountHomeowner: number
+  unreadCountContractor: number
   createdAt: number
   updatedAt: number
 }
