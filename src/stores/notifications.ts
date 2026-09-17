@@ -90,7 +90,7 @@ export const useNotificationsStore = defineStore('notifications', {
       const n = this.items.find((x) => x.id === notificationId)
       if (!n || n.read) return
       try {
-        await updateDoc(doc(db, 'notifications', notificationId), { read: true })
+        await updateDoc(doc(db, 'users', n.recipientUid, 'notifications', notificationId), { read: true })
       } catch (err) {
         console.error('markAsRead failed:', err)
       }
@@ -100,7 +100,7 @@ export const useNotificationsStore = defineStore('notifications', {
       const unread = this.items.filter((n) => !n.read)
       try {
         await Promise.all(
-          unread.map((n) => updateDoc(doc(db, 'notifications', n.id), { read: true })),
+          unread.map((n) => updateDoc(doc(db, 'users', n.recipientUid, 'notifications', n.id), { read: true })),
         )
       } catch (err) {
         console.error('markAllAsRead failed:', err)

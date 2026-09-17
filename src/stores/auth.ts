@@ -52,7 +52,7 @@ export const useAuthStore = defineStore('auth', {
         const notificationsStore = useNotificationsStore()
         if (firebaseUser) {
           await this.fetchProfile(firebaseUser.uid)
-          notificationsStore.subscribe(firebaseUser.uid)
+          notificationsStore.subscribeToUserNotifications(firebaseUser.uid)
           // Fire-and-forget — don't block app load on this, and don't fail loudly
           // if it errors, since it's a nice-to-have signal, not core functionality.
           updateDoc(doc(db, 'users', firebaseUser.uid), { lastActiveAt: Date.now() }).catch((err) =>
