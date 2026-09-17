@@ -462,5 +462,15 @@ export const useProjectsStore = defineStore('projects', {
         'contractor',
       )
     },
+
+    /** Called when a viewer opens a project — zeroes out their own unread count for it. */
+    async clearUnreadCount(projectId: string, role: 'homeowner' | 'contractor') {
+      const field = role === 'homeowner' ? 'unreadCountHomeowner' : 'unreadCountContractor'
+      try {
+        await updateDoc(doc(db, 'projects', projectId), { [field]: 0 })
+      } catch (err) {
+        console.error('clearUnreadCount failed:', err)
+      }
+    },
   },
 })

@@ -422,6 +422,18 @@ watch(
   { immediate: true },
 )
 
+// Opening a project marks it "read" for whoever's viewing it — only once we
+// know both which project this is and which role the viewer has.
+watch(
+  () => project.value?.id,
+  (id) => {
+    if (!id) return
+    if (isHomeowner.value) projectsStore.clearUnreadCount(id, 'homeowner')
+    else if (isContractor.value) projectsStore.clearUnreadCount(id, 'contractor')
+  },
+  { immediate: true },
+)
+
 // Drives the invite countdown display, the "overdue" review badge, and the
 // delayed-project tag. Also the clock that triggers the two lazy, no-backend
 // checks below — they only ever run when the right person happens to be
