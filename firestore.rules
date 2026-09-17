@@ -142,14 +142,5 @@ service cloud.firestore {
           request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.homeownerUid;
       }
     }
-
-    match /notifications/{notificationId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.recipientUid;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null &&
-        request.auth.uid == resource.data.recipientUid &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
-      allow delete: if false;
-    }
   }
 }
