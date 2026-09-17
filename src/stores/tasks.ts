@@ -130,6 +130,7 @@ export const useTasksStore = defineStore('tasks', {
           `A new task was added: "${title}"`,
           projectId,
           projectName,
+          'contractor',
         )
       }
     },

@@ -81,6 +81,7 @@ export const useProgressStore = defineStore('progress', {
         `Reminder: "${taskTitle}" has been waiting for your review`,
         projectId,
         projectName,
+        'homeowner',
       )
     },
 
@@ -156,6 +157,7 @@ export const useProgressStore = defineStore('progress', {
         `A new update was submitted on "${taskTitle}"`,
         projectId,
         projectName,
+        'homeowner',
       )
     },
 
@@ -194,6 +196,7 @@ export const useProgressStore = defineStore('progress', {
         `Your update on "${taskTitle}" was confirmed`,
         projectId,
         projectName,
+        'contractor',
       )
     },
 
@@ -231,6 +234,7 @@ export const useProgressStore = defineStore('progress', {
         `Your update on "${taskTitle}" needs changes: ${reason}`,
         projectId,
         projectName,
+        'contractor',
       )
     },
   },
