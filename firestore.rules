@@ -86,6 +86,17 @@ service cloud.firestore {
             ['pendingInvitationUid', 'pendingInvitationName', 'pendingInvitationUsername', 'updatedAt']
           ) &&
           request.auth.uid == resource.data.pendingInvitationUid
+        ) ||
+        // Either participant: bump the other's unread counter on a notify(),
+        // or clear their own on opening the project. Not scoped tighter than
+        // "either participant, only these two fields" — the actor triggering
+        // an increment is usually the other party, not the counter's owner.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['unreadCountHomeowner', 'unreadCountContractor']
+          ) &&
+          request.auth != null &&
+          (request.auth.uid == resource.data.homeownerUid || request.auth.uid == resource.data.contractorUid)
         )
       );
       // Homeowner-only, and only in the same window that governs editing —
