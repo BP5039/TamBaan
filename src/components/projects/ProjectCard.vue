@@ -61,10 +61,6 @@ function statusLabel(status: string) {
       >
         {{ statusLabel(project.status) }}
       </span>
-
-      <div v-if="canDelete" class="absolute right-2 top-2">
-        <CardMenu :items="[{ label: 'Delete project', action: handleDelete, variant: 'danger' }]" />
-      </div>
     </div>
     <div class="p-3">
       <p class="mb-0.5 text-xs font-semibold text-ink">{{ project.name }}</p>
@@ -73,6 +69,9 @@ function statusLabel(status: string) {
       <p v-if="project.plannedStartDate" class="mt-0.5 text-[11px] text-muted">
         {{ project.plannedStartDate }} → {{ project.plannedEndDate }}
       </p>
+      <div v-if="canDelete" class="mt-1 flex justify-end">
+        <CardMenu :items="[{ label: 'Delete project', action: handleDelete, variant: 'danger' }]" />
+      </div>
     </div>
 
     <ConfirmDialog
