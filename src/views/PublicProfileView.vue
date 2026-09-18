@@ -196,6 +196,7 @@ watch(username, load)
                         v-for="p in group.items"
                         :key="p.id"
                         :project="p"
+                        :unread-count="isOwnProfile ? p.unreadCountHomeowner : undefined"
                         class="cursor-pointer"
                         @click="router.push(`/projects/${p.id}`)"
                       />
