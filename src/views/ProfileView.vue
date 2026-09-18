@@ -230,7 +230,7 @@ async function logout() {
                       @click="router.push(`/projects/${p.id}`)"
                       @keydown.enter="router.push(`/projects/${p.id}`)"
                     >
-                      <ProjectCard :project="p" />
+                      <ProjectCard :project="p" :unread-count="p.unreadCountHomeowner" />
                     </div>
                   </div>
                 </div>
