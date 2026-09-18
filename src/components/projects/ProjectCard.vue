@@ -6,7 +6,7 @@ import CardMenu from '@/components/ui/CardMenu.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import type { Project } from '@/types/project'
 
-const props = defineProps<{ project: Project }>()
+const props = defineProps<{ project: Project; unreadCount?: number }>()
 
 const authStore = useAuthStore()
 const projectsStore = useProjectsStore()
@@ -60,6 +60,13 @@ function statusLabel(status: string) {
         :class="statusStyle(project.status)"
       >
         {{ statusLabel(project.status) }}
+      </span>
+
+      <span
+        v-if="unreadCount && unreadCount > 0"
+        class="absolute right-1.5 top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-white bg-error px-1 text-[10px] font-bold text-white"
+      >
+        {{ unreadCount > 9 ? '9+' : unreadCount }}
       </span>
     </div>
     <div class="p-3">
