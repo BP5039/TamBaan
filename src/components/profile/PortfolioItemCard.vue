@@ -55,6 +55,10 @@ function onImageClick() {
         {{ item.source === 'collaboration' ? 'Completed project' : 'Past work' }}
       </span>
 
+      <div v-if="canDelete && item.source !== 'collaboration'" class="absolute right-2 top-2">
+        <CardMenu :items="[{ label: 'Remove', action: () => $emit('delete'), variant: 'danger' }]" />
+      </div>
+
       <template v-if="hasMultiple">
         <button
           type="button"
@@ -85,9 +89,6 @@ function onImageClick() {
       <p class="mb-0.5 text-xs font-semibold text-ink">{{ item.title }}</p>
       <p class="line-clamp-3 text-xs text-ink/90">{{ item.description }}</p>
       <p class="mt-1 text-[11px] text-muted">{{ item.location }}</p>
-      <div v-if="canDelete && item.source !== 'collaboration'" class="mt-1 flex justify-end">
-        <CardMenu :items="[{ label: 'Remove', action: () => $emit('delete'), variant: 'danger' }]" />
-      </div>
     </div>
 
     <PortfolioLightbox
