@@ -48,7 +48,10 @@ function onImageClick() {
     <div class="relative aspect-[4/3] w-full cursor-pointer bg-cream/60" @click="onImageClick">
       <img :src="item.images[index]?.thumb" alt="" class="h-full w-full object-cover" />
 
-      <span class="absolute left-2 top-2 rounded-full border border-cream bg-cream/90 px-2 py-0.5 text-[10px] font-medium text-muted">
+      <span
+        class="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-medium"
+        :class="item.source === 'collaboration' ? 'bg-success-bg text-success-text' : 'border border-cream bg-cream/90 text-muted'"
+      >
         {{ item.source === 'collaboration' ? 'Completed project' : 'Past work' }}
       </span>
 
