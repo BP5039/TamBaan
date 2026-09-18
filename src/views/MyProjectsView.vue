@@ -41,7 +41,10 @@ const roleLabel = computed(() =>
               @click="router.push(`/projects/${p.id}`)"
               @keydown.enter="router.push(`/projects/${p.id}`)"
             >
-              <ProjectCard :project="p" />
+              <ProjectCard
+                :project="p"
+                :unread-count="authStore.profile?.role === 'homeowner' ? p.unreadCountHomeowner : p.unreadCountContractor"
+              />
             </div>
           </div>
         </div>
