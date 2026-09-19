@@ -12,6 +12,8 @@ import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import type { PortfolioItem } from '@/types'
+import type { Project } from '@/types/project'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -20,6 +22,42 @@ const projectsStore = useProjectsStore()
 
 const profile = computed(() => authStore.profile!)
 const isProfessional = computed(() => profile.value.role === 'professional')
+
+// Merges completed portfolio pieces with currently-active projects into one
+// year-grouped list. Completed projects aren't included here — they're
+// already represented via the portfolio auto-publish system, so including
+// them again would duplicate them.
+type MergedWorkEntry =
+  | { type: 'portfolio'; key: string; year: number; item: PortfolioItem }
+  | { type: 'active'; key: string; year: number; project: Project }
+
+const mergedWorkByYear = computed(() => {
+  const entries: MergedWorkEntry[] = [
+    ...portfolioStore.items.map((item): MergedWorkEntry => ({
+      type: 'portfolio',
+      key: `portfolio-${item.id}`,
+      year: item.year,
+      item,
+    })),
+    ...projectsStore.myProjects
+      .filter((p) => p.status === 'active')
+      .map((project): MergedWorkEntry => ({
+        type: 'active',
+        key: `active-${project.id}`,
+        year: project.plannedStartDate ? new Date(project.plannedStartDate).getFullYear() : new Date().getFullYear(),
+        project,
+      })),
+  ]
+
+  const map = new Map<number, MergedWorkEntry[]>()
+  for (const entry of entries) {
+    if (!map.has(entry.year)) map.set(entry.year, [])
+    map.get(entry.year)!.push(entry)
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => b[0] - a[0])
+    .map(([year, items]) => ({ year, items }))
+})
 
 const showAddModal = ref(false)
 const uploading = ref(false)
@@ -197,23 +235,31 @@ async function logout() {
             </div>
 
             <template v-if="isProfessional">
-              <div v-if="portfolioStore.groupedByYear.length">
-                <div v-for="group in portfolioStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
+              <div v-if="mergedWorkByYear.length">
+                <div v-for="group in mergedWorkByYear" :key="group.year" class="mb-6 last:mb-0">
                   <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
                   <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
-                    <PortfolioItemCard
-                      v-for="item in group.items"
-                      :key="item.id"
-                      :item="item"
-                      can-delete
-                      @delete="handleDeleteItem(item.id)"
-                      @open-project="(id) => router.push(`/projects/${id}`)"
-                    />
+                    <template v-for="entry in group.items" :key="entry.key">
+                      <PortfolioItemCard
+                        v-if="entry.type === 'portfolio'"
+                        :item="entry.item"
+                        can-delete
+                        @delete="handleDeleteItem(entry.item.id)"
+                        @open-project="(id) => router.push(`/projects/${id}`)"
+                      />
+                      <ProjectCard
+                        v-else
+                        :project="entry.project"
+                        :unread-count="entry.project.unreadCountContractor"
+                        class="cursor-pointer"
+                        @click="router.push(`/projects/${entry.project.id}`)"
+                      />
+                    </template>
                   </div>
                 </div>
               </div>
               <p v-else class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted">
-                No work uploaded yet. Add photos of finished jobs to start building your portfolio.
+                No work yet. Active projects and finished work will show up here.
               </p>
             </template>
 
