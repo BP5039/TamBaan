@@ -54,9 +54,28 @@ const mergedWorkByYear = computed(() => {
     if (!map.has(entry.year)) map.set(entry.year, [])
     map.get(entry.year)!.push(entry)
   }
+
+  // Active projects first, then completed collaborations, then manually-added
+  // past work — same "most current/actionable first" ordering as the
+  // homeowner's own grid, just with an extra tier for the portfolio-only case.
+  function tier(entry: MergedWorkEntry): number {
+    if (entry.type === 'active') return 0
+    return entry.item.source === 'collaboration' ? 1 : 2
+  }
+  function lastUpdate(entry: MergedWorkEntry): number {
+    return entry.type === 'active' ? entry.project.updatedAt : entry.item.createdAt
+  }
+
   return Array.from(map.entries())
     .sort((a, b) => b[0] - a[0])
-    .map(([year, items]) => ({ year, items }))
+    .map(([year, items]) => ({
+      year,
+      items: [...items].sort((a, b) => {
+        const diff = tier(a) - tier(b)
+        if (diff !== 0) return diff
+        return lastUpdate(b) - lastUpdate(a)
+      }),
+    }))
 })
 
 const showAddModal = ref(false)

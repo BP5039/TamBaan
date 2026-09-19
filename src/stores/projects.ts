@@ -67,6 +67,7 @@ export const useProjectsStore = defineStore('projects', {
 
   getters: {
     groupedByYear(state): { year: number; items: Project[] }[] {
+      const statusPriority: Record<string, number> = { active: 0, completed: 1, pending: 2 }
       const map = new Map<number, Project[]>()
       for (const p of state.myProjects) {
         const year = p.plannedStartDate ? new Date(p.plannedStartDate).getFullYear() : 0
@@ -75,7 +76,14 @@ export const useProjectsStore = defineStore('projects', {
       }
       return Array.from(map.entries())
         .sort((a, b) => b[0] - a[0])
-        .map(([year, items]) => ({ year, items }))
+        .map(([year, items]) => ({
+          year,
+          items: [...items].sort((a, b) => {
+            const diff = (statusPriority[a.status] ?? 3) - (statusPriority[b.status] ?? 3)
+            if (diff !== 0) return diff
+            return b.updatedAt - a.updatedAt
+          }),
+        }))
     },
   },
 
