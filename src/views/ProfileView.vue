@@ -30,6 +30,7 @@ const showCreateProjectModal = ref(false)
 onMounted(async () => {
   if (isProfessional.value && authStore.user) {
     await portfolioStore.fetchItems(authStore.user.uid)
+    await projectsStore.fetchMyProjects(authStore.user.uid, 'professional')
     await projectsStore.fetchPendingInvitations(authStore.user.uid)
   }
   if (!isProfessional.value && authStore.user) {
