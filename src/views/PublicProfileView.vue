@@ -70,8 +70,8 @@ watch(username, load)
 </script>
 
 <template>
-  <div class="flex h-full flex-col overflow-hidden">
-    <div class="flex w-full flex-1 flex-col overflow-hidden px-4 py-8 sm:px-[15%]">
+  <div class="flex h-full flex-col md:overflow-hidden">
+    <div class="flex w-full flex-1 flex-col px-4 py-8 sm:px-[15%] md:overflow-hidden">
       <BaseButton variant="ghost" class="mb-4 flex-shrink-0 self-start" @click="router.back()">
         ← Back
       </BaseButton>
@@ -104,9 +104,9 @@ watch(username, load)
         </div>
 
         <div
-          class="grid flex-1 grid-cols-1 gap-6 overflow-hidden rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]"
+          class="grid flex-1 grid-cols-1 gap-6 rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr] md:overflow-hidden"
         >
-          <div class="flex flex-col overflow-y-auto text-center md:items-start md:text-left">
+          <div class="flex flex-col text-center md:items-start md:overflow-y-auto md:text-left">
             <div
               class="mb-3 h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border-[3px] bg-cream"
               :class="isProfessional ? activityRingClass(publicProfileStore.profile.lastActiveAt) : 'border-cream'"
@@ -162,12 +162,12 @@ watch(username, load)
 
           <div class="hidden bg-cream md:block" />
 
-          <div class="flex flex-col overflow-hidden">
+          <div class="flex flex-col md:overflow-hidden">
             <h2 class="mb-4 flex-shrink-0 text-sm font-medium text-muted">
               Previous work
             </h2>
 
-            <div class="flex-1 overflow-y-auto pr-1">
+            <div class="flex-1 pr-1 md:overflow-y-auto">
               <template v-if="isProfessional">
                 <div v-if="portfolioStore.groupedByYear.length">
                   <div v-for="group in portfolioStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">

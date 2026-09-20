@@ -31,8 +31,9 @@ function onSearchSubmit(e: Event) {
 
 <template>
   <header class="z-20 border-b border-cream bg-surface/95 backdrop-blur">
-    <div class="flex w-full items-center gap-4 px-4 py-3 sm:px-[15%]">
-      <router-link to="/home" class="flex-shrink-0 font-display text-base font-bold text-ink">
+    <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-3 sm:flex sm:px-[15%]">
+      <div class="sm:hidden" aria-hidden="true"></div>
+      <router-link to="/home" class="flex-shrink-0 justify-self-center font-display text-base font-bold text-ink sm:justify-self-auto">
         TamBaan
       </router-link>
 
@@ -68,7 +69,7 @@ function onSearchSubmit(e: Event) {
         </div>
       </form>
 
-      <nav class="flex flex-shrink-0 items-center gap-5">
+      <nav class="flex flex-shrink-0 items-center justify-self-end gap-5 sm:justify-self-auto">
         <div class="hidden items-center gap-5 sm:flex">
           <router-link
             to="/home"

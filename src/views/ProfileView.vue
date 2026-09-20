@@ -154,12 +154,12 @@ async function logout() {
 </script>
 
 <template>
-  <div v-if="profile" class="flex h-full flex-col overflow-hidden">
-    <div class="flex w-full flex-1 flex-col overflow-hidden px-4 py-8 sm:px-[15%]">
+  <div v-if="profile" class="flex h-full flex-col md:overflow-hidden">
+    <div class="flex w-full flex-1 flex-col px-4 py-8 sm:px-[15%] md:overflow-hidden">
       <div
-        class="grid flex-1 grid-cols-1 gap-6 overflow-hidden rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]"
+        class="grid flex-1 grid-cols-1 gap-6 rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr] md:overflow-hidden"
       >
-        <div class="flex flex-col overflow-y-auto text-center md:items-start md:text-left">
+        <div class="flex flex-col text-center md:items-start md:overflow-y-auto md:text-left">
           <div class="mb-3 h-20 w-20 flex-shrink-0 overflow-hidden rounded-full bg-cream">
             <img v-if="profile.photoURL" :src="profile.photoURL" alt="" class="h-full w-full object-cover" />
           </div>
@@ -207,7 +207,7 @@ async function logout() {
 
         <div class="hidden bg-cream md:block" />
 
-        <div class="flex flex-col overflow-hidden">
+        <div class="flex flex-col md:overflow-hidden">
           <div class="mb-4 flex flex-shrink-0 items-center justify-between">
             <h2 class="text-sm font-medium text-muted">
               My projects
@@ -216,7 +216,7 @@ async function logout() {
             <BaseButton v-else @click="showCreateProjectModal = true">+ Create project</BaseButton>
           </div>
 
-          <div class="flex-1 overflow-y-auto pr-1">
+          <div class="flex-1 pr-1 md:overflow-y-auto">
             <AlertBanner
               v-if="modalUploadError && !showAddModal"
               variant="error"
