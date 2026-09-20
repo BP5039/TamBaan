@@ -31,7 +31,7 @@ function onSearchSubmit(e: Event) {
 
 <template>
   <header class="z-20 border-b border-cream bg-surface/95 backdrop-blur">
-    <div class="flex w-full items-center gap-4 px-[15%] py-3">
+    <div class="flex w-full items-center gap-4 px-4 py-3 sm:px-[15%]">
       <router-link to="/home" class="flex-shrink-0 font-display text-base font-bold text-ink">
         TamBaan
       </router-link>

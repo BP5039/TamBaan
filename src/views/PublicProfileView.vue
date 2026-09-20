@@ -71,7 +71,7 @@ watch(username, load)
 
 <template>
   <div class="flex h-full flex-col overflow-hidden">
-    <div class="flex w-full flex-1 flex-col overflow-hidden px-[15%] py-8">
+    <div class="flex w-full flex-1 flex-col overflow-hidden px-4 py-8 sm:px-[15%]">
       <BaseButton variant="ghost" class="mb-4 flex-shrink-0 self-start" @click="router.back()">
         ← Back
       </BaseButton>

@@ -50,7 +50,7 @@ const groupedNotifications = computed(() =>
 </script>
 
 <template>
-  <div class="w-full px-[15%] py-8">
+  <div class="w-full px-4 py-8 sm:px-[15%]">
     <div class="mb-4 flex items-center justify-between">
       <h1 class="text-xl font-semibold text-ink">Inbox</h1>
       <button

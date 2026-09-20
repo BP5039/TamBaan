@@ -155,7 +155,7 @@ async function logout() {
 
 <template>
   <div v-if="profile" class="flex h-full flex-col overflow-hidden">
-    <div class="flex w-full flex-1 flex-col overflow-hidden px-[15%] py-8">
+    <div class="flex w-full flex-1 flex-col overflow-hidden px-4 py-8 sm:px-[15%]">
       <div
         class="grid flex-1 grid-cols-1 gap-6 overflow-hidden rounded-card border border-cream bg-white p-6 md:grid-cols-[220px_1px_1fr]"
       >

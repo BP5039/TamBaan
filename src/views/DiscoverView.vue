@@ -48,7 +48,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="border-b border-cream px-[15%] py-3">
+    <div class="border-b border-cream px-4 py-3 sm:px-[15%]">
       <div class="w-full">
         <div class="mb-2.5 flex flex-wrap items-center gap-2">
           <select
@@ -98,7 +98,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="w-full px-[15%] py-6">
+    <div class="w-full px-4 py-6 sm:px-[15%]">
       <AlertBanner
         v-if="discoveryStore.error"
         variant="error"

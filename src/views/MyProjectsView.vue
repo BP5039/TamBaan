@@ -21,7 +21,7 @@ const roleLabel = computed(() =>
 </script>
 
 <template>
-  <div class="w-full px-[15%] py-8">
+  <div class="w-full px-4 py-8 sm:px-[15%]">
     <div class="rounded-card border border-cream bg-white p-6">
       <h1 class="mb-1 text-xl font-semibold text-ink">My projects</h1>
       <p class="mb-6 text-xs text-muted">Projects where you're the {{ roleLabel }}.</p>
