@@ -36,7 +36,7 @@ function onSearchSubmit(e: Event) {
         TamBaan
       </router-link>
 
-      <form class="flex flex-1 justify-center" @submit.prevent="onSearchSubmit">
+      <form class="hidden flex-1 justify-center sm:flex" @submit.prevent="onSearchSubmit">
         <div class="flex w-full max-w-xs items-center gap-1 rounded-lg border border-cream bg-white p-1">
           <svg
             class="ml-1.5 h-3.5 w-3.5 flex-shrink-0 text-muted"
@@ -69,54 +69,56 @@ function onSearchSubmit(e: Event) {
       </form>
 
       <nav class="flex flex-shrink-0 items-center gap-5">
-        <router-link
-          to="/home"
-          class="text-sm font-medium pb-0.5"
-          :class="
-            isActive(['home'])
-              ? 'border-b-2 border-primary text-primary font-semibold'
-              : 'text-muted hover:text-ink'
-          "
-        >
-          Home
-        </router-link>
-        <router-link
-          to="/discover"
-          class="text-sm font-medium pb-0.5"
-          :class="
-            isActive(['discover', 'professional-profile'])
-              ? 'border-b-2 border-primary text-primary font-semibold'
-              : 'text-muted hover:text-ink'
-          "
-        >
-          Find professionals
-        </router-link>
-        <router-link
-          v-if="authStore.isLoggedIn"
-          to="/projects"
-          class="text-sm font-medium pb-0.5"
-          :class="
-            isActive(['my-projects', 'project-hub'])
-              ? 'border-b-2 border-primary text-primary font-semibold'
-              : 'text-muted hover:text-ink'
-          "
-        >
-          My projects
-        </router-link>
-        <router-link
-          v-if="authStore.isLoggedIn"
-          to="/inbox"
-          class="relative text-sm font-medium pb-0.5"
-          :class="isActive(['inbox']) ? 'border-b-2 border-primary text-primary font-semibold' : 'text-muted hover:text-ink'"
-        >
-          Inbox
-          <span
-            v-if="notificationsStore.unreadCount > 0"
-            class="absolute -right-3 -top-2 min-w-[14px] rounded-full bg-error px-1 text-center text-[9px] font-bold text-white"
+        <div class="hidden items-center gap-5 sm:flex">
+          <router-link
+            to="/home"
+            class="text-sm font-medium pb-0.5"
+            :class="
+              isActive(['home'])
+                ? 'border-b-2 border-primary text-primary font-semibold'
+                : 'text-muted hover:text-ink'
+            "
           >
-            {{ notificationsStore.unreadCount }}
-          </span>
-        </router-link>
+            Home
+          </router-link>
+          <router-link
+            to="/discover"
+            class="text-sm font-medium pb-0.5"
+            :class="
+              isActive(['discover', 'professional-profile'])
+                ? 'border-b-2 border-primary text-primary font-semibold'
+                : 'text-muted hover:text-ink'
+            "
+          >
+            Find professionals
+          </router-link>
+          <router-link
+            v-if="authStore.isLoggedIn"
+            to="/projects"
+            class="text-sm font-medium pb-0.5"
+            :class="
+              isActive(['my-projects', 'project-hub'])
+                ? 'border-b-2 border-primary text-primary font-semibold'
+                : 'text-muted hover:text-ink'
+            "
+          >
+            My projects
+          </router-link>
+          <router-link
+            v-if="authStore.isLoggedIn"
+            to="/inbox"
+            class="relative text-sm font-medium pb-0.5"
+            :class="isActive(['inbox']) ? 'border-b-2 border-primary text-primary font-semibold' : 'text-muted hover:text-ink'"
+          >
+            Inbox
+            <span
+              v-if="notificationsStore.unreadCount > 0"
+              class="absolute -right-3 -top-2 min-w-[14px] rounded-full bg-error px-1 text-center text-[9px] font-bold text-white"
+            >
+              {{ notificationsStore.unreadCount }}
+            </span>
+          </router-link>
+        </div>
         <router-link v-if="authStore.isLoggedIn" to="/profile" aria-label="My profile">
           <div
             class="h-7 w-7 overflow-hidden rounded-full bg-cream"
@@ -133,7 +135,7 @@ function onSearchSubmit(e: Event) {
         <button
           v-else
           type="button"
-          class="rounded-lg bg-cream px-3 py-1.5 text-sm font-semibold text-ink hover:bg-cream/70"
+          class="hidden rounded-lg bg-cream px-3 py-1.5 text-sm font-semibold text-ink hover:bg-cream/70 sm:block"
           @click="authModalStore.openLogin()"
         >
           Log in
