@@ -774,9 +774,12 @@ onUnmounted(() => {
         No tasks yet.
       </p>
 
-      <div v-else class="mb-12 rounded-card border border-cream bg-white p-4">
-      <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-4 sm:overflow-visible sm:pb-0">
-        <div v-for="column in TASK_COLUMNS" :key="column.status" class="w-full flex-shrink-0 snap-center sm:w-auto">
+      <div v-else class="mb-12 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-4 sm:overflow-visible sm:pb-0">
+        <div
+          v-for="column in TASK_COLUMNS"
+          :key="column.status"
+          class="w-full flex-shrink-0 snap-center rounded-card border border-cream bg-white p-3 sm:w-auto"
+        >
           <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
             {{ column.label }} · {{ tasksByStatus[column.status].length }}
           </p>
@@ -933,7 +936,6 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-      </div>
       </template>
 
       <!-- Activity — a lightweight log, not the interactive surface. Same
@@ -950,7 +952,7 @@ onUnmounted(() => {
       </p>
 
       <div v-else class="sm:overflow-x-auto sm:pb-4 sm:pt-2">
-        <div class="relative flex flex-col gap-6 sm:min-w-full sm:flex-row sm:items-start sm:gap-6">
+        <div class="relative flex flex-col gap-6 sm:min-w-full sm:w-max sm:flex-row sm:items-start sm:gap-6">
         <div
           class="absolute left-[7px] top-0 bottom-0 w-0.5 bg-cream sm:left-3.5 sm:right-3.5 sm:top-[7px] sm:bottom-auto sm:h-0.5 sm:w-auto"
         />
