@@ -11,6 +11,7 @@ const props = withDefaults(
     error?: string
     required?: boolean
     autocomplete?: string
+    maxlength?: number
   }>(),
   {
     type: 'text',
@@ -40,6 +41,7 @@ const resolvedType = computed(() => (isPassword.value && visible.value ? 'text' 
         :value="modelValue"
         :placeholder="placeholder"
         :autocomplete="autocomplete"
+        :maxlength="maxlength"
         :aria-invalid="!!error"
         class="w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:outline-none"
         :class="[error ? 'border-error' : 'border-cream', isPassword && 'pr-10']"

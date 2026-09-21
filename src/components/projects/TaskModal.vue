@@ -20,6 +20,7 @@ const emit = defineEmits<{ close: []; saved: [] }>()
 const tasksStore = useTasksStore()
 const isEditMode = computed(() => !!props.task)
 const MAX_IMAGES = 5
+const MAX_TITLE_LENGTH = 50
 
 const title = ref(props.task?.title ?? '')
 const description = ref(props.task?.description ?? '')
@@ -75,6 +76,10 @@ async function submit() {
     error.value = 'Give the task a name.'
     return
   }
+  if (title.value.trim().length > MAX_TITLE_LENGTH) {
+    error.value = `Task name must be ${MAX_TITLE_LENGTH} characters or fewer.`
+    return
+  }
   if (!description.value.trim()) {
     error.value = 'Add a description — this is where the exact spec goes (e.g. "3000K warm white bulbs").'
     return
@@ -128,6 +133,8 @@ async function submit() {
           v-model="title"
           label="Task name"
           placeholder="e.g. Replace bulb"
+          :maxlength="MAX_TITLE_LENGTH"
+          :hint="`${title.length}/${MAX_TITLE_LENGTH} characters`"
           required
           class="mb-4"
         />
