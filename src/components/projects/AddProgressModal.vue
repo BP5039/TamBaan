@@ -5,6 +5,7 @@ import { validateImageFile, ALLOWED_IMAGE_TYPES } from '@/constants/fileValidati
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import type { ProjectTask } from '@/types/project'
 
 const props = defineProps<{
@@ -47,14 +48,11 @@ const readingExif = ref(false)
 const taskId = ref(props.initialTaskId ?? '')
 const description = ref('')
 const validationError = ref('')
+const showConfirm = ref(false)
 
 const acceptAttr = ALLOWED_IMAGE_TYPES.join(',')
 
 const selectedTask = computed(() => props.tasks.find((t) => t.id === taskId.value) ?? null)
-
-const selectableTasks = computed(() =>
-  props.tasks.filter((t) => t.status === 'not_started' || t.status === 'sent_back'),
-)
 
 const remainingSlots = computed(() => MAX_PHOTOS - slots.value.length)
 
@@ -99,13 +97,19 @@ function submit() {
     return
   }
   if (!taskId.value) {
-    validationError.value = 'Choose which task this update is for.'
+    validationError.value = "Couldn't tell which task this update is for — try reopening it from the task."
     return
   }
   if (!description.value.trim()) {
     validationError.value = 'Add a short description of the progress.'
     return
   }
+
+  showConfirm.value = true
+}
+
+function confirmSubmit() {
+  showConfirm.value = false
 
   // Every photo's own EXIF is preserved per-image on upload — this just picks
   // the first photo's timestamp/device as the update's representative one.
@@ -128,8 +132,10 @@ function submit() {
     <div class="relative w-full max-w-sm rounded-card bg-white p-5">
       <div v-if="saving" class="absolute inset-0 z-10 rounded-card bg-white/60" />
 
-      <h2 class="mb-1 text-lg font-semibold text-ink">Add progress</h2>
-      <p class="mb-4 text-xs text-muted">Up to {{ MAX_PHOTOS }} photos, the task it's for, and what happened.</p>
+      <h2 class="mb-1 text-lg font-semibold text-ink">
+        Add progress — {{ selectedTask?.title ?? 'task' }}
+      </h2>
+      <p class="mb-4 text-xs text-muted">Up to {{ MAX_PHOTOS }} photos and what happened.</p>
 
       <AlertBanner
         v-if="validationError"
@@ -226,17 +232,6 @@ function submit() {
           {{ readingExif ? 'Checking photo info…' : (slots[0]?.exifText ?? `0/${MAX_PHOTOS} photos`) }}
         </p>
 
-        <p class="mb-1 text-sm font-medium text-ink">Task</p>
-        <select
-          v-model="taskId"
-          class="mb-4 w-full rounded-lg border border-cream bg-white px-3 py-2.5 text-sm text-ink focus:outline-none"
-        >
-          <option value="" disabled>Select a task…</option>
-          <option v-for="t in selectableTasks" :key="t.id" :value="t.id">
-            {{ t.title }}
-          </option>
-        </select>
-
         <BaseTextarea
           v-model="description"
           label="Description"
@@ -252,6 +247,15 @@ function submit() {
         </div>
       </fieldset>
     </div>
+
+    <ConfirmDialog
+      v-if="showConfirm"
+      title="Submit this update?"
+      message="Your homeowner will be notified and can review the photos you've added."
+      confirm-label="Submit"
+      @cancel="showConfirm = false"
+      @confirm="confirmSubmit"
+    />
   </div>
   </Teleport>
 </template>
