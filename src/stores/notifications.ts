@@ -85,6 +85,20 @@ export const useNotificationsStore = defineStore('notifications', {
       }
     },
 
+    /** Called when a project is opened — clears just that project's unread notifications,
+     *  not the whole inbox. Mirrors markAllAsRead's fire-and-forget pattern. */
+    async markAllAsReadForProject(projectId: string) {
+      const unread = this.items.filter((n) => !n.read && n.projectId === projectId)
+      if (!unread.length) return
+      try {
+        await Promise.all(
+          unread.map((n) => updateDoc(doc(db, 'users', n.recipientUid, 'notifications', n.id), { read: true })),
+        )
+      } catch (err) {
+        console.error('markAllAsReadForProject failed:', err)
+      }
+    },
+
     /** Fire-and-forget by design — a failed notification write should never block the real action it's attached to. */
     async notify(
       recipientUid: string,

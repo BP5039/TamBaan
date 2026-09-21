@@ -6,6 +6,7 @@ import { useProjectsStore } from '@/stores/projects'
 import { useTasksStore } from '@/stores/tasks'
 import { useProgressStore } from '@/stores/progress'
 import { usePublicProfileStore } from '@/stores/publicProfile'
+import { useNotificationsStore } from '@/stores/notifications'
 import { labelForCategory } from '@/constants/workCategories'
 import { DAYS_PER_TASK } from '@/constants/projectTypes'
 import { formatExif } from '@/utils/exif'
@@ -28,6 +29,7 @@ const projectsStore = useProjectsStore()
 const tasksStore = useTasksStore()
 const progressStore = useProgressStore()
 const publicProfileStore = usePublicProfileStore()
+const notificationsStore = useNotificationsStore()
 
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projectsStore.currentProject)
@@ -430,6 +432,7 @@ watch(
     if (!id) return
     if (isHomeowner.value) projectsStore.clearUnreadCount(id, 'homeowner')
     else if (isContractor.value) projectsStore.clearUnreadCount(id, 'contractor')
+    notificationsStore.markAllAsReadForProject(id)
   },
   { immediate: true },
 )
