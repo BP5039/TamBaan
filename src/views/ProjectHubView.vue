@@ -18,7 +18,7 @@ import AddProgressModal from '@/components/projects/AddProgressModal.vue'
 import TaskModal from '@/components/projects/TaskModal.vue'
 import PortfolioLightbox from '@/components/profile/PortfolioLightbox.vue'
 import CardMenu from '@/components/ui/CardMenu.vue'
-import type { ProjectTask, ProgressUpdate, TaskStatus } from '@/types/project'
+import type { ProjectTask, ProgressUpdate, TaskStatus, SnapshotTaskState } from '@/types/project'
 import type { PortfolioImage } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
@@ -404,12 +404,6 @@ const activityRow = computed<ActivityRowItem[]>(() => {
 // ---- Snapshot: full board state (status + the specific update that was
 //      live) as of any past moment — powers the "git history" view when an
 //      Activity entry is clicked. ----
-
-interface SnapshotTaskState {
-  task: ProjectTask
-  status: TaskStatus
-  update: ProgressUpdate | null
-}
 
 function snapshotAt(timestamp: number): SnapshotTaskState[] {
   return tasksStore.tasks

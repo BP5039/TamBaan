@@ -68,3 +68,11 @@ export interface ProgressUpdate {
   createdAt: number
   updatedAt: number
 }
+
+// A task's reconstructed state as of some past moment — status plus whichever
+// specific progress update was "live" then. Used by the Activity snapshot.
+export interface SnapshotTaskState {
+  task: ProjectTask
+  status: TaskStatus
+  update: ProgressUpdate | null
+}
