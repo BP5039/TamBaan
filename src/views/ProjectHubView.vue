@@ -16,6 +16,7 @@ import CompleteProjectModal from '@/components/projects/CompleteProjectModal.vue
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
 import AddProgressModal from '@/components/projects/AddProgressModal.vue'
 import TaskModal from '@/components/projects/TaskModal.vue'
+import SnapshotModal from '@/components/projects/SnapshotModal.vue'
 import PortfolioLightbox from '@/components/profile/PortfolioLightbox.vue'
 import CardMenu from '@/components/ui/CardMenu.vue'
 import type { ProjectTask, ProgressUpdate, TaskStatus, SnapshotTaskState } from '@/types/project'
@@ -323,14 +324,21 @@ function taskCardId(taskId: string) {
   return `task-card-${taskId}`
 }
 
-// Clicking an Activity entry expands that task's card wherever it sits in
-// the board, and scrolls it into view — the log and the board are two views
-// onto the same data, so jumping between them should feel connected.
-function jumpToTask(taskId: string) {
-  expandedTaskId.value = taskId
-  nextTick(() => {
-    document.getElementById(taskCardId(taskId))?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
-  })
+// Clicking an Activity entry opens the Snapshot modal — the full board
+// exactly as it stood at that entry's moment, with that entry's task
+// expanded by default. This replaces the old "jump to the live task card"
+// behavior, which only showed today's state, not the moment being clicked on.
+const showSnapshot = ref(false)
+const snapshotHighlightId = ref('')
+const snapshotEntryLabel = ref('')
+const snapshotTimestamp = ref(0)
+const snapshotTasks = computed(() => snapshotAt(snapshotTimestamp.value))
+
+function openSnapshot(entry: ActivityEntry) {
+  snapshotHighlightId.value = entry.taskId
+  snapshotEntryLabel.value = `${entry.taskTitle} — ${entry.label}`
+  snapshotTimestamp.value = entry.sortAt
+  showSnapshot.value = true
 }
 
 function monthLabel(ts: number) {
@@ -1002,7 +1010,7 @@ onUnmounted(() => {
             v-else
             type="button"
             class="relative flex gap-3 text-left sm:w-32 sm:flex-shrink-0 sm:flex-col sm:items-center sm:gap-0"
-            @click="jumpToTask(item.entry.taskId)"
+            @click="openSnapshot(item.entry)"
           >
             <span
               class="z-10 mt-0.5 h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-white sm:mt-0"
@@ -1056,6 +1064,16 @@ onUnmounted(() => {
       :project-name="project?.name ?? ''"
       @close="showTaskModal = false"
       @saved="showTaskModal = false"
+    />
+
+    <SnapshotModal
+      v-if="showSnapshot"
+      :tasks="snapshotTasks"
+      :highlight-task-id="snapshotHighlightId"
+      :entry-label="snapshotEntryLabel"
+      :timestamp="snapshotTimestamp"
+      @close="showSnapshot = false"
+      @open-lightbox="(images, i) => openLightbox(images, i)"
     />
 
     <ConfirmDialog
