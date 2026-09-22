@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import type { SnapshotTaskState, TaskStatus } from '@/types/project'
 
 const props = defineProps<{
@@ -27,6 +27,23 @@ function toggle(taskId: string) {
   expandedTaskId.value = expandedTaskId.value === taskId ? '' : taskId
 }
 
+const highlightedState = computed(() => props.tasks.find((t) => t.task.id === props.highlightTaskId))
+
+// Same color family as the Activity dots and the board's own status colors —
+// not_started/created is the one neutral case, the rest map 1:1.
+const borderClass = computed(() => {
+  switch (highlightedState.value?.status) {
+    case 'awaiting_review':
+      return 'border-pending'
+    case 'sent_back':
+      return 'border-error'
+    case 'done':
+      return 'border-success'
+    default:
+      return 'border-muted'
+  }
+})
+
 function byStatus(status: TaskStatus) {
   return props.tasks.filter((t) => t.status === status)
 }
@@ -43,9 +60,8 @@ function columnElId(status: TaskStatus) {
 // board) — default to whichever column the highlighted task is actually in,
 // rather than always starting at "Not started".
 onMounted(() => {
-  const highlighted = props.tasks.find((t) => t.task.id === props.highlightTaskId)
-  if (!highlighted) return
-  document.getElementById(columnElId(highlighted.status))?.scrollIntoView({
+  if (!highlightedState.value) return
+  document.getElementById(columnElId(highlightedState.value.status))?.scrollIntoView({
     behavior: 'auto',
     inline: 'center',
     block: 'nearest',
@@ -56,7 +72,7 @@ onMounted(() => {
 <template>
   <Teleport to="body">
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
-    <div class="w-full max-w-2xl rounded-card bg-surface p-4">
+    <div class="w-full max-w-2xl rounded-card bg-surface p-4 sm:max-w-3xl sm:p-5 lg:max-w-4xl">
       <div class="mb-1 flex items-start justify-between">
         <div>
           <p class="text-sm font-bold text-ink">{{ entryLabel }}</p>
@@ -90,7 +106,7 @@ onMounted(() => {
               class="overflow-hidden rounded-lg border bg-white"
               :class="
                 entry.task.id === highlightTaskId
-                  ? 'border-2 border-error'
+                  ? `border-2 ${borderClass}`
                   : col.status === 'not_started' ? 'border-dashed border-cream' : 'border-cream'
               "
             >
