@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import type { SnapshotTaskState, TaskStatus } from '@/types/project'
 
 const props = defineProps<{
@@ -34,6 +34,23 @@ function byStatus(status: TaskStatus) {
 function dateLabel(ts: number) {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+function columnElId(status: TaskStatus) {
+  return `snapshot-col-${status}`
+}
+
+// On mobile the columns are a horizontal snap-scroll strip (same as the real
+// board) — default to whichever column the highlighted task is actually in,
+// rather than always starting at "Not started".
+onMounted(() => {
+  const highlighted = props.tasks.find((t) => t.task.id === props.highlightTaskId)
+  if (!highlighted) return
+  document.getElementById(columnElId(highlighted.status))?.scrollIntoView({
+    behavior: 'auto',
+    inline: 'center',
+    block: 'nearest',
+  })
+})
 </script>
 
 <template>
@@ -59,6 +76,7 @@ function dateLabel(ts: number) {
         <div
           v-for="col in COLUMNS"
           :key="col.status"
+          :id="columnElId(col.status)"
           class="w-[85%] flex-shrink-0 snap-center rounded-lg border border-cream bg-white p-2 sm:w-auto"
         >
           <p class="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted">
