@@ -1025,7 +1025,7 @@ onUnmounted(() => {
         </span>
         <select
           v-model="activityTaskFilter"
-          class="ml-auto rounded-lg border border-cream bg-white px-2.5 py-1 text-[11px] text-ink focus:outline-none"
+          class="ml-auto rounded-lg border border-cream bg-white px-3 py-2 text-sm text-ink focus:outline-none"
         >
           <option value="">All tasks</option>
           <option v-for="t in tasksStore.tasks" :key="t.id" :value="t.id">
