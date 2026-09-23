@@ -995,7 +995,26 @@ onUnmounted(() => {
            continuous-line visual flow as the old Timeline, but compact
            entries instead of big cards; clicking one expands the task above. -->
       <template v-if="project.status !== 'pending'">
-      <h2 class="mb-6 text-lg font-semibold text-ink">Activity</h2>
+      <h2 class="mb-3 text-lg font-semibold text-ink">Activity</h2>
+
+      <div class="mb-6 flex flex-wrap items-center gap-4">
+        <span class="flex items-center gap-1.5 text-[11px] text-muted">
+          <span class="h-2.5 w-2.5 rounded-full bg-muted" />
+          created
+        </span>
+        <span class="flex items-center gap-1.5 text-[11px] text-muted">
+          <span class="h-2.5 w-2.5 rounded-full bg-pending" />
+          uploaded
+        </span>
+        <span class="flex items-center gap-1.5 text-[11px] text-muted">
+          <span class="h-2.5 w-2.5 rounded-full bg-error" />
+          sent back
+        </span>
+        <span class="flex items-center gap-1.5 text-[11px] text-muted">
+          <span class="h-2.5 w-2.5 rounded-full bg-success" />
+          verified
+        </span>
+      </div>
 
       <p
         v-if="!activityRow.length"
