@@ -354,11 +354,22 @@ interface ActivityEntry {
   dotClass: string
 }
 
-// Reconstructed from the update docs themselves rather than a separate event
-// log — every update starts "uploaded" at createdAt, and if it's since been
-// reviewed, a second entry captures that transition at updatedAt.
+// Reconstructed from the task and update docs themselves rather than a
+// separate event log — a task's own creation is its first entry, then every
+// update starts "uploaded" at createdAt, and if it's since been reviewed, a
+// second entry captures that transition at updatedAt.
 const activityEntries = computed<ActivityEntry[]>(() => {
   const entries: ActivityEntry[] = []
+  for (const t of tasksStore.tasks) {
+    entries.push({
+      key: `${t.id}-created`,
+      sortAt: t.createdAt,
+      taskId: t.id,
+      taskTitle: t.title,
+      label: 'created',
+      dotClass: 'bg-muted',
+    })
+  }
   for (const u of progressStore.updates) {
     entries.push({
       key: `${u.id}-uploaded`,
