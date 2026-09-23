@@ -406,10 +406,19 @@ type ActivityRowItem =
   | { type: 'divider'; key: string; label: string }
   | { type: 'entry'; key: string; entry: ActivityEntry }
 
+// '' means "All tasks" — the filter only narrows what's shown in the log
+// itself; the Snapshot modal always shows the full board regardless.
+const activityTaskFilter = ref('')
+const filteredActivityEntries = computed(() =>
+  activityTaskFilter.value
+    ? activityEntries.value.filter((e) => e.taskId === activityTaskFilter.value)
+    : activityEntries.value,
+)
+
 const activityRow = computed<ActivityRowItem[]>(() => {
   const items: ActivityRowItem[] = []
   let lastMonth = ''
-  for (const entry of activityEntries.value) {
+  for (const entry of filteredActivityEntries.value) {
     const label = monthLabel(entry.sortAt)
     if (label !== lastMonth) {
       items.push({ type: 'divider', key: `divider-${label}`, label })
@@ -1014,6 +1023,15 @@ onUnmounted(() => {
           <span class="h-2.5 w-2.5 rounded-full bg-success" />
           verified
         </span>
+        <select
+          v-model="activityTaskFilter"
+          class="ml-auto rounded-lg border border-cream bg-white px-2.5 py-1 text-[11px] text-ink focus:outline-none"
+        >
+          <option value="">All tasks</option>
+          <option v-for="t in tasksStore.tasks" :key="t.id" :value="t.id">
+            {{ t.title }}
+          </option>
+        </select>
       </div>
 
       <p
