@@ -51,22 +51,38 @@ onMounted(() => {
     <div class="border-b border-cream px-4 py-3 sm:px-[15%]">
       <div class="w-full">
         <div class="mb-2.5 flex flex-wrap items-center gap-2">
-          <select
-            :value="discoveryStore.selectedProvince ?? ALL_PROVINCES"
-            class="rounded-lg border border-cream bg-white px-3 py-2 text-sm text-ink focus:outline-none"
-            @change="onProvinceChange"
-          >
-            <option>{{ ALL_PROVINCES }}</option>
-            <option v-for="p in THAI_PROVINCES" :key="p" :value="p">{{ p }}</option>
-          </select>
+          <div class="relative">
+            <select
+              :value="discoveryStore.selectedProvince ?? ALL_PROVINCES"
+              class="appearance-none rounded-lg border border-cream bg-white py-2 pl-3 pr-8 text-sm text-ink focus:outline-none"
+              @change="onProvinceChange"
+            >
+              <option>{{ ALL_PROVINCES }}</option>
+              <option v-for="p in THAI_PROVINCES" :key="p" :value="p">{{ p }}</option>
+            </select>
+            <svg
+              class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+              viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+            </svg>
+          </div>
 
-          <select
-            :value="discoveryStore.sortOption"
-            class="rounded-lg border border-cream bg-white px-3 py-2 text-sm text-ink focus:outline-none"
-            @change="onSortChange"
-          >
-            <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
+          <div class="relative">
+            <select
+              :value="discoveryStore.sortOption"
+              class="appearance-none rounded-lg border border-cream bg-white py-2 pl-3 pr-8 text-sm text-ink focus:outline-none"
+              @change="onSortChange"
+            >
+              <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <svg
+              class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+              viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+            </svg>
+          </div>
 
           <button
             v-if="hasActiveFilters()"

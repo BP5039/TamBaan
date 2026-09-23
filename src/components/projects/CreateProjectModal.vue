@@ -154,12 +154,20 @@ async function submit() {
         <div class="mb-4">
           <span class="mb-1.5 block text-sm font-medium text-ink">Project type</span>
           <p class="mb-1.5 text-xs text-muted">Used to judge whether the schedule still looks realistic as work progresses.</p>
-          <select
-            v-model="projectType"
-            class="w-full rounded-lg border border-cream bg-white px-3 py-2.5 text-sm text-ink focus:outline-none"
-          >
-            <option v-for="opt in PROJECT_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
+          <div class="relative">
+            <select
+              v-model="projectType"
+              class="w-full appearance-none rounded-lg border border-cream bg-white py-2.5 pl-3 pr-8 text-sm text-ink focus:outline-none"
+            >
+              <option v-for="opt in PROJECT_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <svg
+              class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+              viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+            </svg>
+          </div>
         </div>
         <BaseSelect
         v-model="location"

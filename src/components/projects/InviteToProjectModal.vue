@@ -75,13 +75,21 @@ async function submit() {
 
       <template v-else>
         <p class="mb-1.5 text-sm font-medium text-ink">Choose project</p>
-        <select
-          v-model="selectedProjectId"
-          class="mb-4 w-full rounded-lg border border-cream bg-white px-3 py-2.5 text-sm text-ink focus:outline-none"
-        >
-          <option value="" disabled>Select a project…</option>
-          <option v-for="p in invitableProjects" :key="p.id" :value="p.id">{{ p.name }}</option>
-        </select>
+        <div class="relative mb-4">
+          <select
+            v-model="selectedProjectId"
+            class="w-full appearance-none rounded-lg border border-cream bg-white py-2.5 pl-3 pr-8 text-sm text-ink focus:outline-none"
+          >
+            <option value="" disabled>Select a project…</option>
+            <option v-for="p in invitableProjects" :key="p.id" :value="p.id">{{ p.name }}</option>
+          </select>
+          <svg
+            class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+            viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+          </svg>
+        </div>
 
         <label class="mb-5 flex items-start gap-2 text-xs text-ink">
           <input v-model="hasDiscussed" type="checkbox" class="mt-0.5 flex-shrink-0" />
