@@ -1023,15 +1023,23 @@ onUnmounted(() => {
           <span class="h-2.5 w-2.5 rounded-full bg-success" />
           verified
         </span>
-        <select
-          v-model="activityTaskFilter"
-          class="ml-auto rounded-lg border border-cream bg-white px-3 py-2 text-sm text-ink focus:outline-none"
-        >
-          <option value="">All tasks</option>
-          <option v-for="t in tasksStore.tasks" :key="t.id" :value="t.id">
-            {{ t.title }}
-          </option>
-        </select>
+        <div class="relative ml-auto">
+          <select
+            v-model="activityTaskFilter"
+            class="appearance-none rounded-lg border border-cream bg-white py-2 pl-3 pr-8 text-sm text-ink focus:outline-none"
+          >
+            <option value="">All tasks</option>
+            <option v-for="t in tasksStore.tasks" :key="t.id" :value="t.id">
+              {{ t.title }}
+            </option>
+          </select>
+          <svg
+            class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+            viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+          </svg>
+        </div>
       </div>
 
       <p
