@@ -993,10 +993,19 @@ onUnmounted(() => {
                 <template v-else-if="task.status === 'awaiting_review' && latestUpdateFor(task.id)">
                   <button
                     type="button"
-                    class="mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                    class="relative mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
                     @click="openLightbox(latestUpdateFor(task.id)!.images)"
                   >
                     <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                    <span
+                      v-if="latestUpdateFor(task.id)!.images.length"
+                      class="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-ink/60 px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                    >
+                      <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
+                      </svg>
+                      {{ latestUpdateFor(task.id)!.images.length }}
+                    </span>
                   </button>
                   <p class="mb-1 text-xs text-ink/90">{{ latestUpdateFor(task.id)!.description }}</p>
                   <p class="mb-2 text-[11px] text-muted">
@@ -1046,10 +1055,19 @@ onUnmounted(() => {
                 <template v-else-if="task.status === 'sent_back' && latestUpdateFor(task.id)">
                   <button
                     type="button"
-                    class="mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                    class="relative mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
                     @click="openLightbox(latestUpdateFor(task.id)!.images)"
                   >
                     <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                    <span
+                      v-if="latestUpdateFor(task.id)!.images.length"
+                      class="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-ink/60 px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                    >
+                      <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
+                      </svg>
+                      {{ latestUpdateFor(task.id)!.images.length }}
+                    </span>
                   </button>
                   <p class="mb-2 rounded-lg bg-error-bg p-2 text-xs text-error-text">
                     {{ latestUpdateFor(task.id)!.sentBackReason }}
@@ -1062,10 +1080,19 @@ onUnmounted(() => {
                 <template v-else-if="task.status === 'done' && latestUpdateFor(task.id)">
                   <button
                     type="button"
-                    class="mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                    class="relative mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
                     @click="openLightbox(latestUpdateFor(task.id)!.images)"
                   >
                     <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                    <span
+                      v-if="latestUpdateFor(task.id)!.images.length"
+                      class="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-ink/60 px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                    >
+                      <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
+                      </svg>
+                      {{ latestUpdateFor(task.id)!.images.length }}
+                    </span>
                   </button>
                   <p class="text-xs text-ink/90">{{ latestUpdateFor(task.id)!.description }}</p>
                 </template>
