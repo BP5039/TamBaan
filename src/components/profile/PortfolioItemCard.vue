@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref } from 'vue'
 import type { PortfolioItem } from '@/types'
 import PortfolioLightbox from '@/components/profile/PortfolioLightbox.vue'
 import CardMenu from '@/components/ui/CardMenu.vue'
@@ -7,32 +7,7 @@ import CardMenu from '@/components/ui/CardMenu.vue'
 const props = defineProps<{ item: PortfolioItem; canDelete?: boolean }>()
 const emit = defineEmits<{ delete: []; 'open-project': [projectId: string] }>()
 
-const index = ref(0)
 const lightboxOpen = ref(false)
-const hasMultiple = computed(() => props.item.images.length > 1)
-
-function preload(url: string) {
-  const img = new Image()
-  img.src = url
-}
-
-watch(
-  index,
-  (i) => {
-    const { images } = props.item
-    if (images.length < 2) return
-    preload(images[(i + 1) % images.length].thumb)
-    preload(images[(i - 1 + images.length) % images.length].thumb)
-  },
-  { immediate: true },
-)
-
-function prev() {
-  index.value = (index.value - 1 + props.item.images.length) % props.item.images.length
-}
-function next() {
-  index.value = (index.value + 1) % props.item.images.length
-}
 
 function onImageClick() {
   if (props.item.source === 'collaboration' && props.item.projectId) {
@@ -46,7 +21,7 @@ function onImageClick() {
 <template>
   <div class="overflow-hidden rounded-card border border-cream bg-white">
     <div class="relative aspect-[4/3] w-full cursor-pointer bg-cream/60" @click="onImageClick">
-      <img :src="item.images[index]?.thumb" alt="" class="h-full w-full object-cover" />
+      <img :src="item.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
 
       <span
         class="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-medium"
@@ -59,31 +34,18 @@ function onImageClick() {
         <CardMenu :items="[{ label: 'Remove', action: () => $emit('delete'), variant: 'danger' }]" />
       </div>
 
-      <template v-if="hasMultiple">
-        <button
-          type="button"
-          class="absolute left-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-ink"
-          aria-label="Previous photo"
-          @click.stop="prev"
-        >
-          <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12.5 15l-5-5 5-5" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          class="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-ink"
-          aria-label="Next photo"
-          @click.stop="next"
-        >
-          <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 5l5 5-5 5" />
-          </svg>
-        </button>
-        <span class="absolute bottom-2 right-2 rounded-full bg-ink/60 px-2 py-0.5 text-[10px] text-white">
-          {{ index + 1 }}/{{ item.images.length }}
-        </span>
-      </template>
+      <!-- Icon + count, always shown — browsing beyond the cover photo now
+           happens inside the lightbox (it has its own arrow navigation),
+           not inline on the card. -->
+      <span
+        v-if="item.images.length"
+        class="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-ink/60 px-2 py-0.5 text-[10px] font-semibold text-white"
+      >
+        <svg class="h-3 w-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
+        </svg>
+        {{ item.images.length }}
+      </span>
     </div>
     <div class="p-3">
       <p class="mb-0.5 text-xs font-semibold text-ink">{{ item.title }}</p>
@@ -94,7 +56,7 @@ function onImageClick() {
     <PortfolioLightbox
       v-if="lightboxOpen"
       :images="item.images"
-      :start-index="index"
+      :start-index="0"
       @close="lightboxOpen = false"
     />
   </div>
