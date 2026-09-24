@@ -460,6 +460,45 @@ function snapshotAt(timestamp: number): SnapshotTaskState[] {
     })
 }
 
+// ---- Gallery: every photo across the project, flattened ----
+
+interface GalleryPhoto {
+  thumb: string
+  full: string
+  taskId: string | null // null = project reference photo, not tied to any one task
+  sourceLabel: string
+  sortAt: number
+}
+
+// Reference photos have no per-image timestamp of their own, so each one
+// borrows its parent doc's createdAt as a reasonable stand-in for sorting.
+const galleryReferencePhotos = computed<GalleryPhoto[]>(() => {
+  const photos: GalleryPhoto[] = []
+  if (project.value) {
+    for (const img of project.value.referenceImages) {
+      photos.push({
+        thumb: img.thumb,
+        full: img.full,
+        taskId: null,
+        sourceLabel: 'Project reference photos',
+        sortAt: project.value.createdAt,
+      })
+    }
+  }
+  for (const t of tasksStore.tasks) {
+    for (const img of t.referenceImages ?? []) {
+      photos.push({
+        thumb: img.thumb,
+        full: img.full,
+        taskId: t.id,
+        sourceLabel: t.title,
+        sortAt: t.createdAt,
+      })
+    }
+  }
+  return photos
+})
+
 // ---- Load everything this page needs ----
 
 function load() {
