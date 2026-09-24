@@ -499,6 +499,29 @@ const galleryReferencePhotos = computed<GalleryPhoto[]>(() => {
   return photos
 })
 
+// Each update's own createdAt is the real moment that photo was added —
+// no proxy timestamp needed here, unlike the reference photos above.
+const galleryProgressPhotos = computed<GalleryPhoto[]>(() => {
+  const photos: GalleryPhoto[] = []
+  for (const u of progressStore.updates) {
+    for (const img of u.images) {
+      photos.push({
+        thumb: img.thumb,
+        full: img.full,
+        taskId: u.taskId,
+        sourceLabel: u.taskTitle,
+        sortAt: u.createdAt,
+      })
+    }
+  }
+  return photos
+})
+
+const galleryPhotos = computed<GalleryPhoto[]>(() => [
+  ...galleryReferencePhotos.value,
+  ...galleryProgressPhotos.value,
+])
+
 // ---- Load everything this page needs ----
 
 function load() {
