@@ -530,6 +530,12 @@ const filteredGalleryPhotos = computed(() => {
   return galleryPhotos.value.filter((p) => p.taskId === galleryFilter.value)
 })
 
+const gallerySort = ref<'newest' | 'oldest'>('newest')
+const sortedGalleryPhotos = computed(() => {
+  const sorted = [...filteredGalleryPhotos.value].sort((a, b) => a.sortAt - b.sortAt)
+  return gallerySort.value === 'newest' ? sorted.reverse() : sorted
+})
+
 // ---- Load everything this page needs ----
 
 function load() {
@@ -1160,33 +1166,50 @@ onUnmounted(() => {
            to count. Filter/sort come in the next two commits. -->
       <template v-if="project.status !== 'pending'">
       <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-ink">Gallery · {{ filteredGalleryPhotos.length }}</h2>
-        <div class="relative">
-          <select
-            v-model="galleryFilter"
-            class="appearance-none rounded-lg border border-cream bg-white py-2 pl-3 pr-8 text-sm text-ink focus:outline-none"
-          >
-            <option value="">All images</option>
-            <option value="project">Project reference photos</option>
-            <option v-for="t in tasksStore.tasks" :key="t.id" :value="t.id">{{ t.title }}</option>
-          </select>
-          <svg
-            class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
-            viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
-          </svg>
+        <h2 class="text-lg font-semibold text-ink">Gallery · {{ sortedGalleryPhotos.length }}</h2>
+        <div class="flex gap-2">
+          <div class="relative">
+            <select
+              v-model="galleryFilter"
+              class="appearance-none rounded-lg border border-cream bg-white py-2 pl-3 pr-8 text-sm text-ink focus:outline-none"
+            >
+              <option value="">All images</option>
+              <option value="project">Project reference photos</option>
+              <option v-for="t in tasksStore.tasks" :key="t.id" :value="t.id">{{ t.title }}</option>
+            </select>
+            <svg
+              class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+              viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+            </svg>
+          </div>
+          <div class="relative">
+            <select
+              v-model="gallerySort"
+              class="appearance-none rounded-lg border border-cream bg-white py-2 pl-3 pr-8 text-sm text-ink focus:outline-none"
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+            <svg
+              class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+              viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+            </svg>
+          </div>
         </div>
       </div>
 
       <div class="rounded-card border border-cream bg-white p-3">
         <div class="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
           <button
-            v-for="(photo, i) in filteredGalleryPhotos"
+            v-for="(photo, i) in sortedGalleryPhotos"
             :key="i"
             type="button"
             class="aspect-square overflow-hidden rounded-lg bg-cream"
-            @click="openLightbox(filteredGalleryPhotos.map((p) => ({ thumb: p.thumb, full: p.full })), i)"
+            @click="openLightbox(sortedGalleryPhotos.map((p) => ({ thumb: p.thumb, full: p.full })), i)"
           >
             <img :src="photo.thumb" alt="" class="h-full w-full object-cover" />
           </button>
