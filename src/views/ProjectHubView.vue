@@ -1229,7 +1229,14 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="rounded-card border border-cream bg-white p-3">
+      <p
+        v-if="!sortedGalleryPhotos.length"
+        class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
+      >
+        No photos yet.
+      </p>
+
+      <div v-else class="rounded-card border border-cream bg-white p-3">
         <div class="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
           <button
             v-for="(photo, i) in sortedGalleryPhotos"
