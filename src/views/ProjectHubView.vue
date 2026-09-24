@@ -522,6 +522,14 @@ const galleryPhotos = computed<GalleryPhoto[]>(() => [
   ...galleryProgressPhotos.value,
 ])
 
+// '' = All images, 'project' = reference photos only, otherwise a task id.
+const galleryFilter = ref('')
+const filteredGalleryPhotos = computed(() => {
+  if (!galleryFilter.value) return galleryPhotos.value
+  if (galleryFilter.value === 'project') return galleryPhotos.value.filter((p) => p.taskId === null)
+  return galleryPhotos.value.filter((p) => p.taskId === galleryFilter.value)
+})
+
 // ---- Load everything this page needs ----
 
 function load() {
@@ -1151,16 +1159,34 @@ onUnmounted(() => {
            count badges: each tile already is one photo, so there's nothing
            to count. Filter/sort come in the next two commits. -->
       <template v-if="project.status !== 'pending'">
-      <h2 class="mb-3 text-lg font-semibold text-ink">Gallery</h2>
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-ink">Gallery · {{ filteredGalleryPhotos.length }}</h2>
+        <div class="relative">
+          <select
+            v-model="galleryFilter"
+            class="appearance-none rounded-lg border border-cream bg-white py-2 pl-3 pr-8 text-sm text-ink focus:outline-none"
+          >
+            <option value="">All images</option>
+            <option value="project">Project reference photos</option>
+            <option v-for="t in tasksStore.tasks" :key="t.id" :value="t.id">{{ t.title }}</option>
+          </select>
+          <svg
+            class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+            viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
+          </svg>
+        </div>
+      </div>
 
       <div class="rounded-card border border-cream bg-white p-3">
         <div class="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
           <button
-            v-for="(photo, i) in galleryPhotos"
+            v-for="(photo, i) in filteredGalleryPhotos"
             :key="i"
             type="button"
             class="aspect-square overflow-hidden rounded-lg bg-cream"
-            @click="openLightbox(galleryPhotos.map((p) => ({ thumb: p.thumb, full: p.full })), i)"
+            @click="openLightbox(filteredGalleryPhotos.map((p) => ({ thumb: p.thumb, full: p.full })), i)"
           >
             <img :src="photo.thumb" alt="" class="h-full w-full object-cover" />
           </button>
