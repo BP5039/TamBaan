@@ -1147,6 +1147,27 @@ onUnmounted(() => {
       </div>
       </template>
 
+      <!-- Gallery — every photo on the project, flattened. No grouping, no
+           count badges: each tile already is one photo, so there's nothing
+           to count. Filter/sort come in the next two commits. -->
+      <template v-if="project.status !== 'pending'">
+      <h2 class="mb-3 text-lg font-semibold text-ink">Gallery</h2>
+
+      <div class="rounded-card border border-cream bg-white p-3">
+        <div class="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
+          <button
+            v-for="(photo, i) in galleryPhotos"
+            :key="i"
+            type="button"
+            class="aspect-square overflow-hidden rounded-lg bg-cream"
+            @click="openLightbox(galleryPhotos.map((p) => ({ thumb: p.thumb, full: p.full })), i)"
+          >
+            <img :src="photo.thumb" alt="" class="h-full w-full object-cover" />
+          </button>
+        </div>
+      </div>
+      </template>
+
     </template>
 
     <CompleteProjectModal
