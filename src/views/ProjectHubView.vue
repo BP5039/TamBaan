@@ -522,17 +522,43 @@ const galleryPhotos = computed<GalleryPhoto[]>(() => [
   ...galleryProgressPhotos.value,
 ])
 
-// '' = All images, 'project' = reference photos only, otherwise a task id.
-const galleryFilter = ref('')
-const filteredGalleryPhotos = computed(() => {
-  if (!galleryFilter.value) return galleryPhotos.value
-  if (galleryFilter.value === 'project') return galleryPhotos.value.filter((p) => p.taskId === null)
-  return galleryPhotos.value.filter((p) => p.taskId === galleryFilter.value)
-})
+// '' = flat "All images", 'byTask' = grouped albums (one per task + one for
+// project reference photos). Narrowing to a single task is gone — grouping
+// covers that case better.
+const galleryFilter = ref<'' | 'byTask'>('')
 
 const gallerySort = ref<'newest' | 'oldest'>('newest')
 const sortedGalleryPhotos = computed(() => {
-  const sorted = [...filteredGalleryPhotos.value].sort((a, b) => a.sortAt - b.sortAt)
+  const sorted = [...galleryPhotos.value].sort((a, b) => a.sortAt - b.sortAt)
+  return gallerySort.value === 'newest' ? sorted.reverse() : sorted
+})
+
+interface GalleryAlbum {
+  key: string
+  label: string
+  photos: GalleryPhoto[] // always oldest → newest, regardless of gallerySort
+  latestAt: number
+}
+
+const galleryAlbums = computed<GalleryAlbum[]>(() => {
+  const groups = new Map<string, GalleryPhoto[]>()
+  for (const p of galleryPhotos.value) {
+    const key = p.taskId ?? 'project'
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(p)
+  }
+
+  const albums: GalleryAlbum[] = [...groups.entries()].map(([key, photos]) => {
+    const chronological = [...photos].sort((a, b) => a.sortAt - b.sortAt)
+    return {
+      key,
+      label: chronological[0].sourceLabel,
+      photos: chronological,
+      latestAt: Math.max(...photos.map((p) => p.sortAt)),
+    }
+  })
+
+  const sorted = albums.sort((a, b) => a.latestAt - b.latestAt)
   return gallerySort.value === 'newest' ? sorted.reverse() : sorted
 })
 
@@ -1193,7 +1219,9 @@ onUnmounted(() => {
            to count. Filter/sort come in the next two commits. -->
       <template v-if="project.status !== 'pending'">
       <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-ink">Gallery · {{ sortedGalleryPhotos.length }}</h2>
+        <h2 class="text-lg font-semibold text-ink">
+          Gallery · {{ galleryFilter === 'byTask' ? `${galleryAlbums.length} albums` : sortedGalleryPhotos.length }}
+        </h2>
         <div class="flex gap-2">
           <div class="relative">
             <select
@@ -1201,8 +1229,7 @@ onUnmounted(() => {
               class="appearance-none rounded-lg border border-cream bg-white py-2 pl-3 pr-8 text-sm text-ink focus:outline-none"
             >
               <option value="">All images</option>
-              <option value="project">Project reference photos</option>
-              <option v-for="t in tasksStore.tasks" :key="t.id" :value="t.id">{{ t.title }}</option>
+              <option value="byTask">By task</option>
             </select>
             <svg
               class="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
@@ -1230,11 +1257,32 @@ onUnmounted(() => {
       </div>
 
       <p
-        v-if="!sortedGalleryPhotos.length"
+        v-if="galleryFilter === 'byTask' ? !galleryAlbums.length : !sortedGalleryPhotos.length"
         class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
       >
         No photos yet.
       </p>
+
+      <div v-else-if="galleryFilter === 'byTask'" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        <button
+          v-for="album in galleryAlbums"
+          :key="album.key"
+          type="button"
+          class="overflow-hidden rounded-card border border-cream bg-white text-left"
+          @click="openLightbox(album.photos.map((p) => ({ thumb: p.thumb, full: p.full })), 0)"
+        >
+          <div class="relative aspect-[4/3] bg-cream">
+            <img :src="album.photos[0].thumb" alt="" class="h-full w-full object-cover" />
+            <span class="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-ink/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
+              </svg>
+              {{ album.photos.length }}
+            </span>
+          </div>
+          <p class="truncate p-2 text-xs font-semibold text-ink">{{ album.label }}</p>
+        </button>
+      </div>
 
       <div v-else class="rounded-card border border-cream bg-white p-3">
         <div class="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
