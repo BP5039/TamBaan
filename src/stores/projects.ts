@@ -430,13 +430,20 @@ export const useProjectsStore = defineStore('projects', {
         tx.update(profileRef, { rating: newRating, ratingCount: newCount, updatedAt: Date.now() })
       })
 
-      // Gather every verified photo across this project's tasks for the portfolio piece.
+      // Gather every photo this project ever produced for the portfolio piece —
+      // project/task reference photos plus every verified progress photo —
+      // matching the same definition Gallery uses, not just "verified work."
+      const tasksSnap = await getDocs(collection(db, 'projects', project.id, 'tasks'))
+      const taskReferenceImages = tasksSnap.docs.flatMap(
+        (d) => (d.data().referenceImages as PortfolioImage[] | undefined) ?? [],
+      )
       const verifiedSnap = await getDocs(
         query(collection(db, 'projects', project.id, 'updates'), where('status', '==', 'verified')),
       )
-      const images = verifiedSnap.docs.flatMap(
+      const verifiedImages = verifiedSnap.docs.flatMap(
         (d) => (d.data().images as PortfolioImage[] | undefined) ?? [],
       )
+      const images = [...project.referenceImages, ...taskReferenceImages, ...verifiedImages]
 
       if (images.length) {
         await addDoc(collection(db, 'users', contractorUid, 'portfolio'), {
