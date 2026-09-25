@@ -431,19 +431,20 @@ export const useProjectsStore = defineStore('projects', {
       })
 
       // Gather every photo this project ever produced for the portfolio piece —
-      // project/task reference photos plus every verified progress photo —
-      // matching the same definition Gallery uses, not just "verified work."
+      // project/task reference photos plus every progress photo regardless of
+      // status — matching Gallery's definition exactly, not a curated subset.
+      // (Previously "verified only," from when the card still needed a clean
+      // set for arrow-cycling — that constraint is gone now that it's just a
+      // badge + lightbox, so the restriction no longer serves a purpose.)
       const tasksSnap = await getDocs(collection(db, 'projects', project.id, 'tasks'))
       const taskReferenceImages = tasksSnap.docs.flatMap(
         (d) => (d.data().referenceImages as PortfolioImage[] | undefined) ?? [],
       )
-      const verifiedSnap = await getDocs(
-        query(collection(db, 'projects', project.id, 'updates'), where('status', '==', 'verified')),
-      )
-      const verifiedImages = verifiedSnap.docs.flatMap(
+      const updatesSnap = await getDocs(collection(db, 'projects', project.id, 'updates'))
+      const progressImages = updatesSnap.docs.flatMap(
         (d) => (d.data().images as PortfolioImage[] | undefined) ?? [],
       )
-      const images = [...project.referenceImages, ...taskReferenceImages, ...verifiedImages]
+      const images = [...project.referenceImages, ...taskReferenceImages, ...progressImages]
 
       if (images.length) {
         await addDoc(collection(db, 'users', contractorUid, 'portfolio'), {
