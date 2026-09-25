@@ -52,7 +52,7 @@ service cloud.firestore {
         // Homeowner: edit project details — only while no invite is out yet.
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-            ['name', 'description', 'location', 'plannedStartDate', 'plannedEndDate', 'referenceImages', 'projectType', 'updatedAt']
+            ['name', 'description', 'location', 'plannedStartDate', 'plannedEndDate', 'referenceImages', 'projectType', 'photoCount', 'updatedAt']
           ) &&
           request.auth.uid == resource.data.homeownerUid &&
           resource.data.status == 'pending' &&
@@ -95,6 +95,16 @@ service cloud.firestore {
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(
             ['unreadCountHomeowner', 'unreadCountContractor']
           ) &&
+          request.auth != null &&
+          (request.auth.uid == resource.data.homeownerUid || request.auth.uid == resource.data.contractorUid)
+        ) ||
+        // Either participant: bump photoCount — the homeowner adding project/task
+        // reference photos, or the contractor uploading progress photos. Kept
+        // separate from the combined edit-details write above since this one
+        // fires from more places (task add/edit/delete, progress upload) than
+        // just the project-details form.
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoCount']) &&
           request.auth != null &&
           (request.auth.uid == resource.data.homeownerUid || request.auth.uid == resource.data.contractorUid)
         )

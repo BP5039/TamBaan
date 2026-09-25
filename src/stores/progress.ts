@@ -3,6 +3,7 @@ import {
   addDoc,
   collection,
   doc,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -132,6 +133,7 @@ export const useProgressStore = defineStore('progress', {
       }
 
       await addDoc(collection(db, 'projects', projectId, 'updates'), payload)
+      await updateDoc(doc(db, 'projects', projectId), { photoCount: increment(images.length) })
 
       // Not unshifted into local state here — the live subscribeToUpdates
       // listener already picks this up. Doing it manually raced it and
