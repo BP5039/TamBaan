@@ -475,7 +475,7 @@ interface GalleryPhoto {
 const galleryReferencePhotos = computed<GalleryPhoto[]>(() => {
   const photos: GalleryPhoto[] = []
   if (project.value) {
-    for (const img of project.value.referenceImages) {
+    for (const img of project.value.referenceImages ?? []) {
       photos.push({
         thumb: img.thumb,
         full: img.full,
@@ -1147,12 +1147,12 @@ onUnmounted(() => {
 
       <p
         v-if="!activityRow.length"
-        class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
+        class="mb-12 rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
       >
         No activity yet.
       </p>
 
-      <div v-else class="sm:overflow-x-auto sm:pb-4 sm:pt-2">
+      <div v-else class="mb-12 sm:overflow-x-auto sm:pb-4 sm:pt-2">
         <div class="relative flex flex-col gap-6 sm:min-w-full sm:w-max sm:flex-row sm:items-start sm:gap-6">
         <div
           class="absolute left-[7px] top-0 bottom-0 w-0.5 bg-cream sm:left-3.5 sm:right-3.5 sm:top-[7px] sm:bottom-auto sm:h-0.5 sm:w-auto"
