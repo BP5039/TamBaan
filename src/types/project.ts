@@ -35,6 +35,7 @@ export interface Project {
   review: ProjectReview | null
   unreadCountHomeowner: number
   unreadCountContractor: number
+  photoCount: number
   createdAt: number
   updatedAt: number
 }

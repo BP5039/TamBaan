@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -115,6 +116,7 @@ export const useTasksStore = defineStore('tasks', {
           referenceImages,
           updatedAt: Date.now(),
         })
+        await updateDoc(doc(db, 'projects', projectId), { photoCount: increment(files.length) })
       }
 
       // Not pushed into local state here — the live subscribeToTasks
@@ -151,6 +153,7 @@ export const useTasksStore = defineStore('tasks', {
         ? await Promise.all(newFiles.map((f, i) => uploadTaskReferenceImage(projectId, taskId, f, i)))
         : []
       const referenceImages = [...keepImages, ...uploaded]
+      const photoCountDelta = uploaded.length - removedImages.length
 
       await updateDoc(doc(db, 'projects', projectId, 'tasks', taskId), {
         title,
@@ -158,6 +161,9 @@ export const useTasksStore = defineStore('tasks', {
         referenceImages,
         updatedAt: Date.now(),
       })
+      if (photoCountDelta !== 0) {
+        await updateDoc(doc(db, 'projects', projectId), { photoCount: increment(photoCountDelta) })
+      }
       if (task) {
         task.title = title
         task.description = description
@@ -180,6 +186,11 @@ export const useTasksStore = defineStore('tasks', {
       const task = this.tasks.find((t) => t.id === taskId)
       if (task?.hasProgress) throw new Error('task-locked')
       await deleteDoc(doc(db, 'projects', projectId, 'tasks', taskId))
+      if (task?.referenceImages?.length) {
+        await updateDoc(doc(db, 'projects', projectId), {
+          photoCount: increment(-task.referenceImages.length),
+        })
+      }
       this.tasks = this.tasks.filter((t) => t.id !== taskId)
     },
   },

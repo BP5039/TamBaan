@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -176,6 +177,7 @@ export const useProjectsStore = defineStore('projects', {
         review: null,
         unreadCountHomeowner: 0,
         unreadCountContractor: 0,
+        photoCount: 0,
         createdAt: Date.now(),
         updatedAt: Date.now(),
     }
@@ -195,8 +197,12 @@ export const useProjectsStore = defineStore('projects', {
       const referenceImages = await Promise.all(
         files.map((f, i) => uploadReferenceImage(docRef.id, f, i)),
       )
-      await updateDoc(doc(db, 'projects', docRef.id), { referenceImages, updatedAt: Date.now() })
-      project = { ...project, referenceImages }
+      await updateDoc(doc(db, 'projects', docRef.id), {
+        referenceImages,
+        photoCount: increment(files.length),
+        updatedAt: Date.now(),
+      })
+      project = { ...project, referenceImages, photoCount: files.length }
     }
 
     this.myProjects.unshift(project)
@@ -328,18 +334,24 @@ export const useProjectsStore = defineStore('projects', {
         ? await Promise.all(newFiles.map((f, i) => uploadReferenceImage(project.id, f, i)))
         : []
       const referenceImages = [...keepImages, ...uploaded]
+      const photoCountDelta = uploaded.length - removedImages.length
 
       await updateDoc(doc(db, 'projects', project.id), {
         ...data,
         referenceImages,
+        ...(photoCountDelta !== 0 ? { photoCount: increment(photoCountDelta) } : {}),
         updatedAt: Date.now(),
       })
 
       if (this.currentProject?.id === project.id) {
         Object.assign(this.currentProject, data, { referenceImages })
+        this.currentProject.photoCount += photoCountDelta
       }
       const listed = this.myProjects.find((p) => p.id === project.id)
-      if (listed) Object.assign(listed, data, { referenceImages })
+      if (listed) {
+        Object.assign(listed, data, { referenceImages })
+        listed.photoCount += photoCountDelta
+      }
 
       // Best-effort cleanup — a failed delete shouldn't block the save the user is waiting on.
       for (const img of removedImages) {
