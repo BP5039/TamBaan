@@ -8,7 +8,6 @@ import { useProgressStore } from '@/stores/progress'
 import { usePublicProfileStore } from '@/stores/publicProfile'
 import { useNotificationsStore } from '@/stores/notifications'
 import { labelForCategory } from '@/constants/workCategories'
-import { DAYS_PER_TASK } from '@/constants/projectTypes'
 import { formatExif } from '@/utils/exif'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import StarRating from '@/components/ui/StarRating.vue'
@@ -20,6 +19,9 @@ import SnapshotModal from '@/components/projects/SnapshotModal.vue'
 import PortfolioLightbox from '@/components/profile/PortfolioLightbox.vue'
 import CardMenu from '@/components/ui/CardMenu.vue'
 import type { ProjectTask, ProgressUpdate, TaskStatus, SnapshotTaskState } from '@/types/project'
+import { snapshotAt } from '@/utils/snapshot'
+import { buildGalleryAlbums, type GalleryPhoto, type GalleryAlbum } from '@/utils/gallery'
+import { getScheduleWarning } from '@/utils/scheduleWarnings'
 import type { PortfolioImage } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
@@ -332,7 +334,7 @@ const showSnapshot = ref(false)
 const snapshotHighlightId = ref('')
 const snapshotEntryLabel = ref('')
 const snapshotTimestamp = ref(0)
-const snapshotTasks = computed(() => snapshotAt(snapshotTimestamp.value))
+const snapshotTasks = computed(() => snapshotAtNow(snapshotTimestamp.value))
 
 function openSnapshot(entry: ActivityEntry) {
   snapshotHighlightId.value = entry.taskId
@@ -433,42 +435,11 @@ const activityRow = computed<ActivityRowItem[]>(() => {
 //      live) as of any past moment — powers the "git history" view when an
 //      Activity entry is clicked. ----
 
-function snapshotAt(timestamp: number): SnapshotTaskState[] {
-  return tasksStore.tasks
-    // A task created after this moment didn't exist yet — it has no place
-    // in a snapshot of the past.
-    .filter((task) => task.createdAt <= timestamp)
-    .map((task) => {
-      const updatesByThen = progressStore.updates
-        .filter((u) => u.taskId === task.id && u.createdAt <= timestamp)
-        .sort((a, b) => b.createdAt - a.createdAt)
-
-      if (!updatesByThen.length) {
-        return { task, status: 'not_started' as TaskStatus, update: null }
-      }
-
-      const latest = updatesByThen[0]
-      // The update exists by `timestamp`, but its review (verified/sent back)
-      // may not have happened yet — in that case it was still awaiting review.
-      if (latest.status === 'pending' || latest.updatedAt > timestamp) {
-        return { task, status: 'awaiting_review' as TaskStatus, update: latest }
-      }
-      if (latest.status === 'verified') {
-        return { task, status: 'done' as TaskStatus, update: latest }
-      }
-      return { task, status: 'sent_back' as TaskStatus, update: latest }
-    })
+function snapshotAtNow(timestamp: number): SnapshotTaskState[] {
+  return snapshotAt(tasksStore.tasks, progressStore.updates, timestamp)
 }
 
 // ---- Gallery: every photo across the project, flattened ----
-
-interface GalleryPhoto {
-  thumb: string
-  full: string
-  taskId: string | null // null = project reference photo, not tied to any one task
-  sourceLabel: string
-  sortAt: number
-}
 
 // Reference photos have no per-image timestamp of their own, so each one
 // borrows its parent doc's createdAt as a reasonable stand-in for sorting.
@@ -533,34 +504,7 @@ const sortedGalleryPhotos = computed(() => {
   return gallerySort.value === 'newest' ? sorted.reverse() : sorted
 })
 
-interface GalleryAlbum {
-  key: string
-  label: string
-  photos: GalleryPhoto[] // always oldest → newest, regardless of gallerySort
-  latestAt: number
-}
-
-const galleryAlbums = computed<GalleryAlbum[]>(() => {
-  const groups = new Map<string, GalleryPhoto[]>()
-  for (const p of galleryPhotos.value) {
-    const key = p.taskId ?? 'project'
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(p)
-  }
-
-  const albums: GalleryAlbum[] = [...groups.entries()].map(([key, photos]) => {
-    const chronological = [...photos].sort((a, b) => a.sortAt - b.sortAt)
-    return {
-      key,
-      label: chronological[0].sourceLabel,
-      photos: chronological,
-      latestAt: Math.max(...photos.map((p) => p.sortAt)),
-    }
-  })
-
-  const sorted = albums.sort((a, b) => a.latestAt - b.latestAt)
-  return gallerySort.value === 'newest' ? sorted.reverse() : sorted
-})
+const galleryAlbums = computed<GalleryAlbum[]>(() => buildGalleryAlbums(galleryPhotos.value, gallerySort.value))
 
 // ---- Load everything this page needs ----
 
@@ -636,25 +580,9 @@ onMounted(() => {
   clockInterval = setInterval(tick, 60_000)
 })
 
-// Delayed once the deadline has actually passed with work still outstanding —
-// the harder of the two warnings, so it takes priority over "at risk" below.
-const isDelayed = computed(() => {
-  if (!project.value || project.value.status !== 'active') return false
-  return new Date(project.value.plannedEndDate).getTime() < now.value && !allTasksDone.value
-})
-
-// Softer, earlier warning: given the remaining tasks and this project's scope
-// (a "Quick fix" paces faster than a "New build" even at the same task
-// count), is there realistically enough runway left before the deadline?
-// Never fires once isDelayed already has — that's the harder signal.
-const isAtRisk = computed(() => {
-  if (!project.value || project.value.status !== 'active' || isDelayed.value || allTasksDone.value) return false
-  const remainingTasks = tasksStore.tasks.filter((t) => t.status !== 'done').length
-  if (remainingTasks === 0) return false
-  const expectedDaysNeeded = remainingTasks * DAYS_PER_TASK[project.value.projectType]
-  const daysRemaining = (new Date(project.value.plannedEndDate).getTime() - now.value) / DAY_MS
-  return daysRemaining > 0 && expectedDaysNeeded > daysRemaining
-})
+const scheduleWarning = computed(() => getScheduleWarning(project.value, tasksStore.tasks, now.value))
+const isDelayed = computed(() => scheduleWarning.value === 'delayed')
+const isAtRisk = computed(() => scheduleWarning.value === 'at_risk')
 
 function formatCountdown(expiresAt: number | null): string {
   if (!expiresAt) return ''
