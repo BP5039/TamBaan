@@ -9,8 +9,11 @@ import { usePublicProfileStore } from '@/stores/publicProfile'
 import { useNotificationsStore } from '@/stores/notifications'
 import { labelForCategory } from '@/constants/workCategories'
 import { formatExif } from '@/utils/exif'
+import { formatDateRange } from '@/utils/dateFormat'
+import { getInitials } from '@/utils/initials'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import StarRating from '@/components/ui/StarRating.vue'
+import AlertBanner from '@/components/ui/AlertBanner.vue'
 import CompleteProjectModal from '@/components/projects/CompleteProjectModal.vue'
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
 import AddProgressModal from '@/components/projects/AddProgressModal.vue'
@@ -152,9 +155,21 @@ const statusLabel = computed(() => {
     case 'completed':
       return { text: 'Completed', variant: 'success' }
     default:
-      return { text: 'Pending', variant: 'pending' }
+      // Same wording as the My Projects card (ProjectCard.vue) — a project
+      // doesn't stay un-contextually "Pending" on one surface and
+      // contextual on the other.
+      return {
+        text: project.value?.pendingInvitationUid ? 'Pending approval' : 'Awaiting invite',
+        variant: 'pending',
+      }
   }
 })
+
+const dateRange = computed(() =>
+  project.value?.plannedStartDate && project.value?.plannedEndDate
+    ? formatDateRange(project.value.plannedStartDate, project.value.plannedEndDate)
+    : '',
+)
 
 const showAddModal = ref(false)
 const uploadTaskId = ref('')
@@ -163,6 +178,7 @@ const modalUploadError = ref('')
 
 const showTaskModal = ref(false)
 const editingTask = ref<ProjectTask | null>(null)
+const taskActionError = ref('')
 
 const sendBackTargetId = ref<string | null>(null)
 const sendBackReason = ref('')
@@ -228,11 +244,12 @@ function runConfirmed() {
 }
 
 function handleTaskDelete(taskId: string) {
+  taskActionError.value = ''
   askConfirm("Delete this task?", "This can't be undone.", true, async () => {
     try {
       await tasksStore.deleteTask(projectId.value, taskId)
     } catch {
-      tasksStore.error = "This task can't be deleted — progress has already been logged against it."
+      taskActionError.value = "This task can't be deleted — progress has already been logged against it."
     }
   })
 }
@@ -618,16 +635,22 @@ onUnmounted(() => {
 
     <template v-else>
       <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-xl font-semibold text-ink">{{ project.name }}</h1>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
+          <h1 class="text-xl font-semibold text-ink">{{ project.name }}</h1>
           <button
             v-if="canEditDetails"
             type="button"
-            class="text-xs font-medium text-primary underline"
+            title="Edit project"
+            aria-label="Edit project"
+            class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-muted transition hover:bg-cream/60 hover:text-ink"
             @click="showEditModal = true"
           >
-            Edit
+            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 3.5a2.121 2.121 0 013 3L6 17l-4 1 1-4 10.5-10.5z" />
+            </svg>
           </button>
+        </div>
+        <div class="flex items-center gap-2">
           <span
             class="rounded-lg px-2.5 py-1 text-xs font-medium"
             :class="
@@ -681,11 +704,19 @@ onUnmounted(() => {
           >
             {{ project.description }}
           </p>
-          <p class="mb-1.5 text-xs text-muted">
-            Planned: {{ project.plannedStartDate }} → {{ project.plannedEndDate }}
-          </p>
-          <p class="text-xs text-ink">
-            Homeowner:
+          <div v-if="dateRange" class="mb-2 flex items-center justify-center gap-1.5 text-xs text-muted">
+            <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <rect x="3" y="4.5" width="14" height="12" rx="1.5" />
+              <path stroke-linecap="round" d="M3 8h14M7 2.5v3M13 2.5v3" />
+            </svg>
+            <span class="font-semibold text-ink">{{ dateRange }}</span>
+          </div>
+
+          <p class="mb-1 text-[11px] text-muted">Homeowner</p>
+          <div class="flex items-center justify-center gap-1.5 text-xs text-ink">
+            <div class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
+              {{ getInitials(project.homeownerName) }}
+            </div>
             <router-link
               v-if="project.homeownerUsername"
               :to="`/discover/${project.homeownerUsername}`"
@@ -694,7 +725,7 @@ onUnmounted(() => {
               {{ project.homeownerName }}
             </router-link>
             <span v-else class="font-medium">{{ project.homeownerName }}</span>
-          </p>
+          </div>
         </div>
 
         <!-- Column 2: Professional info — whatever the current contractor relationship is -->
@@ -860,6 +891,21 @@ onUnmounted(() => {
         <h2 class="text-lg font-semibold text-ink">Tasks</h2>
         <BaseButton v-if="isHomeowner" @click="openAddTask">+ Add task</BaseButton>
       </div>
+
+      <AlertBanner
+        v-if="tasksStore.error"
+        variant="error"
+        title="Couldn't load tasks"
+        :message="tasksStore.error"
+        class="mb-6"
+      />
+      <AlertBanner
+        v-if="taskActionError"
+        variant="error"
+        title="Can't delete this task"
+        :message="taskActionError"
+        class="mb-6"
+      />
 
       <p
         v-if="!tasksStore.tasks.length"

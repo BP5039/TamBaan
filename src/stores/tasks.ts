@@ -65,12 +65,14 @@ export const useTasksStore = defineStore('tasks', {
     subscribeToTasks(projectId: string) {
       this.unsubscribeFromTasks()
       this.loading = true
+      this.error = ''
       const q = query(collection(db, 'projects', projectId, 'tasks'), orderBy('createdAt', 'asc'))
       unsubscribeTasksFn = onSnapshot(
         q,
         (snap) => {
           this.tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ProjectTask)
           this.loading = false
+          this.error = ''
         },
         (err) => {
           console.error('tasks listener failed:', err)
