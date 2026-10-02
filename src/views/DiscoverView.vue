@@ -33,6 +33,11 @@ function onSortChange(e: Event) {
   discoveryStore.setSortOption((e.target as HTMLSelectElement).value as SortOption)
 }
 
+function clearCategories() {
+  discoveryStore.selectedCategories = []
+  discoveryStore.runSearch()
+}
+
 function resetFilters() {
   discoveryStore.selectedProvince = null
   discoveryStore.selectedCategories = []
@@ -94,13 +99,27 @@ onMounted(() => {
           </button>
         </div>
 
-        <p class="mb-1.5 text-xs text-muted">Work experience</p>
-        <div class="flex flex-wrap gap-1.5">
+        <p class="mb-1.5 mt-3 text-xs text-muted">Work experience</p>
+        <div
+          class="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <button
+            type="button"
+            class="flex-shrink-0 whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-medium transition"
+            :class="
+              discoveryStore.selectedCategories.length === 0
+                ? 'border-primary bg-primary text-white'
+                : 'border-cream text-muted hover:border-primary/50 hover:text-ink'
+            "
+            @click="clearCategories"
+          >
+            All
+          </button>
           <button
             v-for="cat in WORK_CATEGORIES"
             :key="cat.value"
             type="button"
-            class="rounded-lg border px-2.5 py-1 text-xs font-medium transition"
+            class="flex-shrink-0 whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-medium transition"
             :class="
               discoveryStore.selectedCategories.includes(cat.value)
                 ? 'border-primary bg-primary text-white'

@@ -38,7 +38,7 @@ function onSearchSubmit(e: Event) {
       </router-link>
 
       <form class="hidden flex-1 justify-center sm:flex" @submit.prevent="onSearchSubmit">
-        <div class="flex w-full max-w-xs items-center gap-1 rounded-lg border border-cream bg-white p-1">
+        <div class="flex w-full max-w-md items-center gap-1 rounded-lg border border-cream bg-white p-1">
           <svg
             class="ml-1.5 h-3.5 w-3.5 flex-shrink-0 text-muted"
             viewBox="0 0 20 20"
@@ -73,22 +73,22 @@ function onSearchSubmit(e: Event) {
         <div class="hidden items-center gap-5 sm:flex">
           <router-link
             to="/home"
-            class="text-sm font-medium pb-0.5"
+            class="border-b-2 pb-0.5 text-sm font-medium"
             :class="
               isActive(['home'])
-                ? 'border-b-2 border-primary text-primary font-semibold'
-                : 'text-muted hover:text-ink'
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-muted hover:text-ink'
             "
           >
             Home
           </router-link>
           <router-link
             to="/discover"
-            class="text-sm font-medium pb-0.5"
+            class="border-b-2 pb-0.5 text-sm font-medium"
             :class="
               isActive(['discover', 'professional-profile'])
-                ? 'border-b-2 border-primary text-primary font-semibold'
-                : 'text-muted hover:text-ink'
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-muted hover:text-ink'
             "
           >
             Find professionals
@@ -96,11 +96,11 @@ function onSearchSubmit(e: Event) {
           <router-link
             v-if="authStore.isLoggedIn"
             to="/projects"
-            class="text-sm font-medium pb-0.5"
+            class="border-b-2 pb-0.5 text-sm font-medium"
             :class="
               isActive(['my-projects', 'project-hub'])
-                ? 'border-b-2 border-primary text-primary font-semibold'
-                : 'text-muted hover:text-ink'
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-muted hover:text-ink'
             "
           >
             My projects
@@ -108,8 +108,12 @@ function onSearchSubmit(e: Event) {
           <router-link
             v-if="authStore.isLoggedIn"
             to="/inbox"
-            class="relative text-sm font-medium pb-0.5"
-            :class="isActive(['inbox']) ? 'border-b-2 border-primary text-primary font-semibold' : 'text-muted hover:text-ink'"
+            class="relative border-b-2 pb-0.5 text-sm font-medium"
+            :class="
+              isActive(['inbox'])
+                ? 'border-primary text-primary font-semibold'
+                : 'border-transparent text-muted hover:text-ink'
+            "
           >
             Inbox
             <span
