@@ -22,27 +22,37 @@ const starStates = computed<('full' | 'half' | 'empty')[]>(() => {
 
 <template>
   <div class="flex items-center gap-1">
-    <div class="flex items-center gap-0.5">
-      <template v-for="(state, i) in starStates" :key="i">
-        <svg v-if="state === 'full'" :width="size" :height="size" viewBox="0 0 20 20" fill="#B8763F">
-          <path :d="STAR_PATH" />
-        </svg>
-        <span v-else-if="state === 'half'" class="relative inline-block" :style="{ width: size + 'px', height: size + 'px' }">
-          <svg class="absolute left-0 top-0" :width="size" :height="size" viewBox="0 0 20 20" fill="none" stroke="#DCD3C0" stroke-width="1.3">
+    <!-- No rating yet: a single empty star reads as "nothing here yet," where
+         five empty stars read as "scored zero out of five." -->
+    <template v-if="rating == null">
+      <svg :width="size" :height="size" viewBox="0 0 20 20" fill="none" stroke="#DCD3C0" stroke-width="1.3">
+        <path :d="STAR_PATH" />
+      </svg>
+      <span class="text-xs text-muted">New</span>
+    </template>
+
+    <template v-else>
+      <div class="flex items-center gap-0.5">
+        <template v-for="(state, i) in starStates" :key="i">
+          <svg v-if="state === 'full'" :width="size" :height="size" viewBox="0 0 20 20" fill="#B8763F">
             <path :d="STAR_PATH" />
           </svg>
-          <span class="absolute left-0 top-0 h-full w-1/2 overflow-hidden">
-            <svg :width="size" :height="size" viewBox="0 0 20 20" fill="#B8763F">
+          <span v-else-if="state === 'half'" class="relative inline-block" :style="{ width: size + 'px', height: size + 'px' }">
+            <svg class="absolute left-0 top-0" :width="size" :height="size" viewBox="0 0 20 20" fill="none" stroke="#DCD3C0" stroke-width="1.3">
               <path :d="STAR_PATH" />
             </svg>
+            <span class="absolute left-0 top-0 h-full w-1/2 overflow-hidden">
+              <svg :width="size" :height="size" viewBox="0 0 20 20" fill="#B8763F">
+                <path :d="STAR_PATH" />
+              </svg>
+            </span>
           </span>
-        </span>
-        <svg v-else :width="size" :height="size" viewBox="0 0 20 20" fill="none" stroke="#DCD3C0" stroke-width="1.3">
-          <path :d="STAR_PATH" />
-        </svg>
-      </template>
-    </div>
-    <span v-if="rating != null" class="text-xs text-muted">{{ rating.toFixed(1) }} ({{ count }})</span>
-    <span v-else class="text-xs text-muted">Not yet rated</span>
+          <svg v-else :width="size" :height="size" viewBox="0 0 20 20" fill="none" stroke="#DCD3C0" stroke-width="1.3">
+            <path :d="STAR_PATH" />
+          </svg>
+        </template>
+      </div>
+      <span class="text-xs text-muted">{{ rating.toFixed(1) }} ({{ count }})</span>
+    </template>
   </div>
 </template>

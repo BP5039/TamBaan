@@ -46,7 +46,11 @@ const isMatched = computed(() => !!matchedItem.value)
       <div class="min-w-0">
         <p class="truncate text-sm font-semibold text-ink">{{ profile.firstName }} {{ profile.lastName }}</p>
         <p class="truncate text-xs text-muted">@{{ profile.username }}</p>
-        <p class="text-[11px] font-medium" :class="activityTextClass(profile.lastActiveAt)">
+        <p
+          v-if="formatLastSeen(profile.lastActiveAt)"
+          class="text-[11px] font-medium"
+          :class="activityTextClass(profile.lastActiveAt)"
+        >
           {{ formatLastSeen(profile.lastActiveAt) }}
         </p>
       </div>
@@ -96,7 +100,7 @@ const isMatched = computed(() => !!matchedItem.value)
         </div>
       </div>
       <p v-else class="flex flex-1 items-center justify-center text-center text-[11px] italic text-muted">
-        No work uploaded yet
+        No past projects
       </p>
     </div>
   </button>

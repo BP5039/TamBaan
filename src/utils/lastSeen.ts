@@ -1,5 +1,7 @@
 export function formatLastSeen(timestamp?: number): string {
-  if (!timestamp) return 'Activity unknown'
+  // No timestamp means no activity data — an empty string, not a label,
+  // since a blank line reads better than announcing what's missing.
+  if (!timestamp) return ''
 
   const diffDays = Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24))
 
