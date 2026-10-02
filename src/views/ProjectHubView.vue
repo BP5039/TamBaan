@@ -764,12 +764,14 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <div v-else-if="isHomeowner" class="h-full rounded-card border border-dashed border-cream p-4">
-            <p class="text-xs text-muted">
-              No contractor invited yet. Visit a professional's profile from
-              <router-link to="/discover" class="font-medium text-primary underline">Find professionals</router-link>
-              to invite them to this project.
-            </p>
+          <div v-else-if="isHomeowner" class="flex h-full flex-col items-center justify-center gap-2 rounded-card border border-dashed border-cream p-4 text-center">
+            <p class="text-xs text-muted">No contractor invited yet.</p>
+            <router-link
+              to="/discover"
+              class="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary/90"
+            >
+              Find professionals
+            </router-link>
           </div>
         </div>
 
