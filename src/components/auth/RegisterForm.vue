@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { friendlyAuthError } from '@/utils/authErrors'
+import { fieldAuthError } from '@/utils/authErrors'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
@@ -14,15 +14,17 @@ const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const error = ref('')
-const fieldErrors = reactive<{ confirmPassword?: string }>({})
+const fieldErrors = reactive<{ email?: string; password?: string; confirmPassword?: string }>({})
 const loading = ref(false)
 
 async function onSubmit() {
   error.value = ''
+  fieldErrors.email = undefined
+  fieldErrors.password = undefined
   fieldErrors.confirmPassword = undefined
 
   if (password.value !== confirmPassword.value) {
-    fieldErrors.confirmPassword = 'Passwords do not match'
+    fieldErrors.confirmPassword = 'Invalid confirm password.'
     return
   }
 
@@ -31,7 +33,9 @@ async function onSubmit() {
     await authStore.register(email.value.trim(), password.value)
     emit('success')
   } catch (e) {
-    error.value = friendlyAuthError((e as { code?: string }).code ?? '')
+    const { field, message } = fieldAuthError((e as { code?: string }).code ?? '')
+    if (field === 'general') error.value = message
+    else fieldErrors[field] = message
   } finally {
     loading.value = false
   }
@@ -52,12 +56,20 @@ async function onSubmit() {
     />
 
     <form class="space-y-4" @submit.prevent="onSubmit">
-      <BaseInput v-model="email" type="email" label="Email" autocomplete="email" required />
+      <BaseInput
+        v-model="email"
+        type="email"
+        label="Email"
+        autocomplete="email"
+        :error="fieldErrors.email"
+        required
+      />
       <BaseInput
         v-model="password"
         type="password"
         label="Password"
         autocomplete="new-password"
+        :error="fieldErrors.password"
         required
       />
       <BaseInput

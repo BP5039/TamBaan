@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { friendlyAuthError } from '@/utils/authErrors'
+import { fieldAuthError } from '@/utils/authErrors'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
@@ -13,16 +13,29 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const error = ref('')
+const fieldErrors = reactive<{ email?: string; password?: string }>({})
 const loading = ref(false)
 
 async function onSubmit() {
   error.value = ''
+  fieldErrors.email = undefined
+  fieldErrors.password = undefined
   loading.value = true
   try {
     await authStore.login(email.value.trim(), password.value)
     emit('success')
   } catch (e) {
-    error.value = friendlyAuthError((e as { code?: string }).code ?? '')
+    const { field, message } = fieldAuthError((e as { code?: string }).code ?? '')
+    if (field === 'general') {
+      error.value = message
+    } else if (message === 'Invalid email or password.') {
+      // Ambiguous credential error — highlight both fields, but only show
+      // the message once (under password) so it doesn't repeat itself.
+      fieldErrors.email = ' '
+      fieldErrors.password = message
+    } else {
+      fieldErrors[field] = message
+    }
   } finally {
     loading.value = false
   }
@@ -43,12 +56,20 @@ async function onSubmit() {
     />
 
     <form class="space-y-4" @submit.prevent="onSubmit">
-      <BaseInput v-model="email" type="email" label="Email" autocomplete="email" required />
+      <BaseInput
+        v-model="email"
+        type="email"
+        label="Email"
+        autocomplete="email"
+        :error="fieldErrors.email"
+        required
+      />
       <BaseInput
         v-model="password"
         type="password"
         label="Password"
         autocomplete="current-password"
+        :error="fieldErrors.password"
         required
       />
       <BaseButton type="submit" full-width :loading="loading">Log in</BaseButton>
