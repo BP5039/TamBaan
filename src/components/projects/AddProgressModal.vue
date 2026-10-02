@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { readExif, formatExif } from '@/utils/exif'
-import { validateImageFile, ALLOWED_IMAGE_TYPES } from '@/constants/fileValidation'
+import { validateImageFile, ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_LABEL, MAX_IMAGE_SIZE_BYTES } from '@/constants/fileValidation'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
@@ -183,6 +183,7 @@ function confirmSubmit() {
             Gallery
           </button>
         </div>
+        <p class="mb-2 text-[11px] text-muted">{{ ALLOWED_IMAGE_LABEL }} · up to {{ Math.round(MAX_IMAGE_SIZE_BYTES / (1024 * 1024)) }}MB each</p>
         <input
           ref="cameraInput"
           type="file"

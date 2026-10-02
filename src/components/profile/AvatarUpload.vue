@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { validateImageFile } from '@/constants/fileValidation'
+import { validateImageFile, ALLOWED_IMAGE_LABEL, MAX_IMAGE_SIZE_BYTES } from '@/constants/fileValidation'
 
 const props = defineProps<{
   currentUrl?: string | null
@@ -69,5 +69,8 @@ defineExpose({ reset })
       class="hidden"
       @change="onChange"
     />
+    <p class="text-center text-[11px] text-muted">
+      {{ ALLOWED_IMAGE_LABEL }} · up to {{ Math.round(MAX_IMAGE_SIZE_BYTES / (1024 * 1024)) }}MB
+    </p>
   </div>
 </template>

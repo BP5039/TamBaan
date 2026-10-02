@@ -9,7 +9,7 @@ import AlertBanner from '@/components/ui/AlertBanner.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { THAI_PROVINCES } from '@/constants/provinces'
 import { PROJECT_TYPE_OPTIONS } from '@/constants/projectTypes'
-import { validateImageFile } from '@/constants/fileValidation'
+import { validateImageFile, ALLOWED_IMAGE_LABEL, MAX_IMAGE_SIZE_BYTES } from '@/constants/fileValidation'
 import type { Project, ProjectType } from '@/types/project'
 import type { PortfolioImage } from '@/types'
 
@@ -85,7 +85,7 @@ async function submit() {
     return
   }
   if (!plannedStartDate.value || !plannedEndDate.value) {
-    error.value = 'Pick a planned start and end date.'
+    error.value = 'Pick a start and end date.'
     return
   }
   if (plannedEndDate.value < plannedStartDate.value) {
@@ -187,7 +187,8 @@ async function submit() {
         />
 
         <p class="mb-1 text-sm font-medium text-ink">Reference photos</p>
-        <p class="mb-2 text-xs text-muted">Optional — help your contractor see what they're working with.</p>
+        <p class="mb-1 text-xs text-muted">Optional — help your contractor see what they're working with.</p>
+        <p class="mb-2 text-[11px] text-muted">{{ ALLOWED_IMAGE_LABEL }} · up to {{ Math.round(MAX_IMAGE_SIZE_BYTES / (1024 * 1024)) }}MB each</p>
         <div class="mb-1 grid grid-cols-5 gap-1.5">
           <div
             v-for="(img, i) in existingImages"
@@ -245,8 +246,8 @@ async function submit() {
         />
 
         <div class="mb-5 grid grid-cols-2 gap-3">
-          <BaseInput v-model="plannedStartDate" type="date" label="Planned start" required />
-          <BaseInput v-model="plannedEndDate" type="date" label="Planned end" required />
+          <BaseInput v-model="plannedStartDate" type="date" label="Start date" required />
+          <BaseInput v-model="plannedEndDate" type="date" label="End date" required />
         </div>
         <div class="flex gap-2">
           <BaseButton variant="outline" full-width @click="$emit('close')">Cancel</BaseButton>

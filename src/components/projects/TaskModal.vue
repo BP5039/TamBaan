@@ -5,7 +5,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
-import { validateImageFile } from '@/constants/fileValidation'
+import { validateImageFile, ALLOWED_IMAGE_LABEL, MAX_IMAGE_SIZE_BYTES } from '@/constants/fileValidation'
 import type { ProjectTask } from '@/types/project'
 import type { PortfolioImage } from '@/types'
 
@@ -148,7 +148,8 @@ async function submit() {
         />
 
         <p class="mb-1 text-sm font-medium text-ink">Reference photos</p>
-        <p class="mb-2 text-xs text-muted">Optional — show the area so the professional knows what they're working with.</p>
+        <p class="mb-1 text-xs text-muted">Optional — show the area so the professional knows what they're working with.</p>
+        <p class="mb-2 text-[11px] text-muted">{{ ALLOWED_IMAGE_LABEL }} · up to {{ Math.round(MAX_IMAGE_SIZE_BYTES / (1024 * 1024)) }}MB each</p>
         <div class="mb-1 grid grid-cols-5 gap-1.5">
           <div
             v-for="(img, i) in existingImages"

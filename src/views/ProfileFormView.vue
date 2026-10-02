@@ -33,6 +33,9 @@ const pendingAvatarFile = ref<File | null>(null)
 const saving = ref(false)
 const saveError = ref('')
 
+// Thai mobile numbers: 10 digits, starting with 0 (dashes/spaces stripped before checking).
+const PHONE_REGEX = /^0\d{9}$/
+
 watchEffect(() => {
   const p = authStore.profile
   if (!p) return
@@ -58,12 +61,20 @@ function onAvatarInvalid(message: string) {
 
 function validate(): boolean {
   Object.keys(errors).forEach((k) => delete errors[k as keyof ProfileFormData])
-  if (!form.firstName.trim()) errors.firstName = 'Required'
-  if (!form.lastName.trim()) errors.lastName = 'Required'
-  if (!form.phone.trim()) errors.phone = 'Required'
-  if (!form.province) errors.province = 'Select a province'
+
+  if (!form.firstName.trim()) errors.firstName = 'Please enter your first name.'
+  if (!form.lastName.trim()) errors.lastName = 'Please enter your last name.'
+
+  const phoneDigits = form.phone.replace(/\D/g, '')
+  if (!phoneDigits) {
+    errors.phone = 'Please enter your phone number.'
+  } else if (!PHONE_REGEX.test(phoneDigits)) {
+    errors.phone = 'Enter a valid 10-digit phone number.'
+  }
+
+  if (!form.province) errors.province = 'Please select a province.'
   if (form.role === 'professional' && form.workCategories.length === 0) {
-    errors.workCategories = 'Select at least one'
+    errors.workCategories = 'Select at least one work category.'
   }
   return Object.keys(errors).length === 0
 }
