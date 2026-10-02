@@ -183,7 +183,7 @@ async function onSubmit() {
         <div class="rounded-lg border border-cream bg-cream/30 px-3 py-2.5 text-sm capitalize text-muted">
           {{ form.role }}
         </div>
-        <p class="mt-1 text-xs text-muted">Role can't be changed after signup.</p>
+        <p class="mt-1 text-xs text-muted">Roles can't be changed once set.</p>
       </div>
 
       <div v-if="form.role === 'professional'">
