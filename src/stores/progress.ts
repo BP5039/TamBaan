@@ -13,6 +13,7 @@ import {
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/firebase/config'
 import { createThumbnail } from '@/utils/imageResize'
+import { imageContentType } from '@/constants/fileValidation'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useTasksStore } from '@/stores/tasks'
 import type { ProgressUpdate } from '@/types/project'
@@ -104,14 +105,17 @@ export const useProgressStore = defineStore('progress', {
           try {
             const thumbBlob = await createThumbnail(file)
             const thumbRef = ref(storage, `progress/${projectId}/${stamp}-${i}-thumb-${file.name}.jpg`)
-            await Promise.all([uploadBytes(fullRef, file), uploadBytes(thumbRef, thumbBlob)])
+            await Promise.all([
+              uploadBytes(fullRef, file, { contentType: imageContentType(file) }),
+              uploadBytes(thumbRef, thumbBlob),
+            ])
             const [full, thumb] = await Promise.all([
               getDownloadURL(fullRef),
               getDownloadURL(thumbRef),
             ])
             return { full, thumb }
           } catch {
-            await uploadBytes(fullRef, file)
+            await uploadBytes(fullRef, file, { contentType: imageContentType(file) })
             const full = await getDownloadURL(fullRef)
             return { full, thumb: full }
           }

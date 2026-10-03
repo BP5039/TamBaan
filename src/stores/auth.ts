@@ -18,6 +18,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { auth, db, storage } from '@/firebase/config'
 import { useNotificationsStore } from '@/stores/notifications'
+import { imageContentType } from '@/constants/fileValidation'
 import type { ProfileFormData, UserProfile } from '@/types'
 
 interface AuthState {
@@ -132,7 +133,7 @@ export const useAuthStore = defineStore('auth', {
           }
           const path = `avatars/${this.user.uid}/${Date.now()}-${file.name}`
           const storageRef = ref(storage, path)
-          await uploadBytes(storageRef, file)
+          await uploadBytes(storageRef, file, { contentType: imageContentType(file) })
           const url = await getDownloadURL(storageRef)
 
           await updateDoc(doc(db, 'users', this.user.uid), {

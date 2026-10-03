@@ -14,6 +14,7 @@ import {
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/firebase/config'
 import { createThumbnail } from '@/utils/imageResize'
+import { imageContentType } from '@/constants/fileValidation'
 import { useNotificationsStore } from '@/stores/notifications'
 import type { ProjectTask, TaskStatus } from '@/types/project'
 import type { PortfolioImage } from '@/types'
@@ -43,13 +44,16 @@ async function uploadTaskReferenceImage(
   }
 
   if (!thumbBlob) {
-    await uploadBytes(fullRef, file)
+    await uploadBytes(fullRef, file, { contentType: imageContentType(file) })
     const full = await getDownloadURL(fullRef)
     return { full, thumb: full }
   }
 
   const thumbRef = ref(storage, `projects/${projectId}/tasks/${taskId}/reference/${stamp}-thumb-${file.name}.jpg`)
-  await Promise.all([uploadBytes(fullRef, file), uploadBytes(thumbRef, thumbBlob)])
+  await Promise.all([
+    uploadBytes(fullRef, file, { contentType: imageContentType(file) }),
+    uploadBytes(thumbRef, thumbBlob),
+  ])
   const [full, thumb] = await Promise.all([getDownloadURL(fullRef), getDownloadURL(thumbRef)])
   return { full, thumb }
 }

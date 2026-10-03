@@ -12,6 +12,7 @@ import {
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { db, storage } from '@/firebase/config'
 import { createThumbnail } from '@/utils/imageResize'
+import { imageContentType } from '@/constants/fileValidation'
 import type { PortfolioImage, PortfolioItem } from '@/types'
 
 const PREVIEW_CAP = 12
@@ -57,13 +58,16 @@ async function uploadOneImage(uid: string, file: File, index: number): Promise<P
   }
 
   if (!thumbBlob) {
-    await uploadBytes(fullRef, file)
+    await uploadBytes(fullRef, file, { contentType: imageContentType(file) })
     const full = await getDownloadURL(fullRef)
     return { full, thumb: full }
   }
 
   const thumbRef = ref(storage, `portfolio/${uid}/${stamp}-thumb-${file.name}.jpg`)
-  await Promise.all([uploadBytes(fullRef, file), uploadBytes(thumbRef, thumbBlob)])
+  await Promise.all([
+    uploadBytes(fullRef, file, { contentType: imageContentType(file) }),
+    uploadBytes(thumbRef, thumbBlob),
+  ])
   const [full, thumb] = await Promise.all([
     getDownloadURL(fullRef),
     getDownloadURL(thumbRef),
