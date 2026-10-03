@@ -60,4 +60,10 @@ export interface PortfolioItem {
   source: 'manual' | 'collaboration'
   projectId: string | null
   createdAt: number
+  // Denormalized from the source Project at completion time, so a
+  // collaboration-sourced item can show the same avatar/date row as a live
+  // project card. Manual past-work entries never have these.
+  homeownerName?: string
+  plannedStartDate?: string
+  plannedEndDate?: string
 }

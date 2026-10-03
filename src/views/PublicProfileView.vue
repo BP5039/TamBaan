@@ -10,6 +10,7 @@ import PortfolioItemCard from '@/components/profile/PortfolioItemCard.vue'
 import ProjectCard from '@/components/projects/ProjectCard.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import UserAvatar from '@/components/ui/UserAvatar.vue'
 import InviteToProjectModal from '@/components/projects/InviteToProjectModal.vue'
 import { formatLastSeen } from '@/utils/lastSeen'
 import { activityRingClass } from '@/utils/lastSeen'
@@ -111,11 +112,10 @@ watch(username, load)
               class="mb-3 h-20 w-20 flex-shrink-0 overflow-hidden rounded-full border-[3px] bg-cream"
               :class="isProfessional ? activityRingClass(publicProfileStore.profile.lastActiveAt) : 'border-cream'"
             >
-              <img
-                v-if="publicProfileStore.profile.photoURL"
-                :src="publicProfileStore.profile.photoURL"
-                alt=""
-                class="h-full w-full object-cover"
+              <UserAvatar
+                :name="`${publicProfileStore.profile.firstName} ${publicProfileStore.profile.lastName}`"
+                :photo-url="publicProfileStore.profile.photoURL"
+                text-class="text-lg"
               />
             </div>
             <p class="font-medium text-ink">

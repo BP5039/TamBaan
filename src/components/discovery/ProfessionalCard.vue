@@ -5,6 +5,7 @@ import { useDiscoveryStore } from '@/stores/discovery'
 import { labelForCategory } from '@/constants/workCategories'
 import { formatLastSeen, activityRingClass, activityTextClass } from '@/utils/lastSeen'
 import StarRating from '@/components/ui/StarRating.vue'
+import UserAvatar from '@/components/ui/UserAvatar.vue'
 import type { UserProfile } from '@/types'
 
 const props = defineProps<{ profile: UserProfile }>()
@@ -41,7 +42,7 @@ const isMatched = computed(() => !!matchedItem.value)
         class="h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full border-[2.5px] bg-cream"
         :class="activityRingClass(profile.lastActiveAt)"
         >
-        <img v-if="profile.photoURL" :src="profile.photoURL" alt="" class="h-full w-full object-cover" />
+        <UserAvatar :name="`${profile.firstName} ${profile.lastName}`" :photo-url="profile.photoURL" text-class="text-sm" />
       </div>
       <div class="min-w-0">
         <p class="truncate text-sm font-semibold text-ink">{{ profile.firstName }} {{ profile.lastName }}</p>

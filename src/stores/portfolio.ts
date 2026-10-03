@@ -138,6 +138,9 @@ export const usePortfolioStore = defineStore('portfolio', {
             source: normalizeSource(data),
             projectId: typeof data.projectId === 'string' ? data.projectId : null,
             createdAt: (data.createdAt as number) ?? Date.now(),
+            homeownerName: typeof data.homeownerName === 'string' ? data.homeownerName : undefined,
+            plannedStartDate: typeof data.plannedStartDate === 'string' ? data.plannedStartDate : undefined,
+            plannedEndDate: typeof data.plannedEndDate === 'string' ? data.plannedEndDate : undefined,
           } satisfies PortfolioItem
         })
       } finally {

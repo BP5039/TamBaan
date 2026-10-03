@@ -456,6 +456,11 @@ export const useProjectsStore = defineStore('projects', {
           source: 'collaboration' as const,
           projectId: project.id,
           createdAt: Date.now(),
+          // Denormalized so this card can render the same avatar/date row as
+          // a live project card — see the PortfolioItem comment for why.
+          homeownerName: project.homeownerName,
+          plannedStartDate: project.plannedStartDate,
+          plannedEndDate: project.plannedEndDate,
         })
 
         // Keep the contractor's denormalized preview/count in sync, same as a manual add would.
@@ -474,6 +479,9 @@ export const useProjectsStore = defineStore('projects', {
             source: data.source === 'collaboration' ? 'collaboration' : 'manual',
             projectId: typeof data.projectId === 'string' ? data.projectId : null,
             createdAt: (data.createdAt as number) ?? Date.now(),
+            homeownerName: typeof data.homeownerName === 'string' ? data.homeownerName : undefined,
+            plannedStartDate: typeof data.plannedStartDate === 'string' ? data.plannedStartDate : undefined,
+            plannedEndDate: typeof data.plannedEndDate === 'string' ? data.plannedEndDate : undefined,
           } satisfies PortfolioItem
         })
         await syncPreview(contractorUid, allItems)

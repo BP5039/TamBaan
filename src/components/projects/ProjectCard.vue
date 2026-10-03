@@ -4,7 +4,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
 import CardMenu from '@/components/ui/CardMenu.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
-import { getInitials } from '@/utils/initials'
+import UserAvatar from '@/components/ui/UserAvatar.vue'
+import ImageCountBadge from '@/components/ui/ImageCountBadge.vue'
 import { formatDateRange } from '@/utils/dateFormat'
 import type { Project } from '@/types/project'
 
@@ -90,15 +91,9 @@ const dateRange = computed(() =>
         {{ unreadCount > 9 ? '9+' : unreadCount }}
       </span>
 
-      <span
-        v-if="project.photoCount > 0"
-        class="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-ink/60 px-2 py-0.5 text-[10px] font-semibold text-white"
-      >
-        <svg class="h-3 w-3" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
-        </svg>
-        {{ project.photoCount }}
-      </span>
+      <div class="absolute bottom-2 right-2">
+        <ImageCountBadge :count="project.photoCount" />
+      </div>
 
       <div v-if="canDelete" class="absolute right-2 top-2">
         <CardMenu :items="[{ label: 'Delete project', action: handleDelete, variant: 'danger' }]" />
@@ -107,8 +102,8 @@ const dateRange = computed(() =>
 
     <div class="flex flex-col gap-1 p-3">
       <div v-if="otherParty" class="flex items-center gap-1.5">
-        <div class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
-          {{ getInitials(otherParty) }}
+        <div class="h-5 w-5 flex-shrink-0 overflow-hidden rounded-full bg-cream">
+          <UserAvatar :name="otherParty" />
         </div>
         <span class="text-[11px] text-muted">{{ otherParty }}</span>
       </div>
