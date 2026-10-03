@@ -994,10 +994,14 @@ onUnmounted(() => {
           </div>
         </aside>
 
-        <!-- Right panel: Tasks / Activity / Gallery, swapped by the tab above. -->
-        <div v-if="project.status !== 'pending'" class="w-full min-w-0 rounded-card border border-cream bg-white p-4 sm:overflow-y-auto">
+        <!-- Right panel: Tasks / Activity / Gallery, swapped by the tab above.
+             A flex column of its own fixed height (matching the rail via the
+             grid above), so each tab can pin its title/filters in place
+             while only the content underneath scrolls. -->
+        <div v-if="project.status !== 'pending'" class="w-full min-w-0 rounded-card border border-cream bg-white p-4 sm:flex sm:h-full sm:flex-col sm:overflow-hidden">
         <template v-if="activeTab === 'tasks'">
-      <div class="mb-6 flex items-center justify-between">
+      <div class="sm:flex sm:h-full sm:min-h-0 sm:flex-1 sm:flex-col">
+      <div class="mb-6 flex flex-shrink-0 items-center justify-between">
         <h2 class="text-lg font-semibold text-ink">Tasks</h2>
         <BaseButton v-if="isHomeowner" @click="openAddTask">+ Add task</BaseButton>
       </div>
@@ -1007,16 +1011,17 @@ onUnmounted(() => {
         variant="error"
         title="Couldn't load tasks"
         :message="tasksStore.error"
-        class="mb-6"
+        class="mb-6 flex-shrink-0"
       />
       <AlertBanner
         v-if="taskActionError"
         variant="error"
         title="Can't delete this task"
         :message="taskActionError"
-        class="mb-6"
+        class="mb-6 flex-shrink-0"
       />
 
+      <div class="sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
       <p
         v-if="!tasksStore.tasks.length"
         class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
@@ -1026,7 +1031,7 @@ onUnmounted(() => {
 
       <div
         v-else
-        class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-cream sm:overflow-visible sm:pb-2"
+        class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:min-h-full sm:auto-rows-[minmax(100%,auto)] sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-cream sm:overflow-visible sm:pb-2"
       >
         <KanbanColumn
           v-for="column in TASK_COLUMNS"
@@ -1174,14 +1179,17 @@ onUnmounted(() => {
           </template>
         </KanbanColumn>
       </div>
+      </div>
+      </div>
       </template>
 
       <!-- Activity — a connected node path, snaking three-to-a-row. Each
            node is clickable and opens the Snapshot modal at that moment. -->
       <template v-else-if="activeTab === 'activity'">
-      <h2 class="mb-3 text-lg font-semibold text-ink">Activity</h2>
+      <div class="sm:flex sm:h-full sm:min-h-0 sm:flex-1 sm:flex-col">
+      <h2 class="mb-3 flex-shrink-0 text-lg font-semibold text-ink">Activity</h2>
 
-      <div class="mb-6 flex flex-wrap items-center gap-4">
+      <div class="mb-6 flex flex-shrink-0 flex-wrap items-center gap-4">
         <span class="flex items-center gap-1.5 text-[11px] text-muted">
           <span class="h-2.5 w-2.5 rounded-sm bg-muted" />
           created
@@ -1217,6 +1225,7 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <div class="sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
       <p
         v-if="!activityPath.positions.length"
         class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
@@ -1278,13 +1287,16 @@ onUnmounted(() => {
           </button>
         </div>
       </div>
+      </div>
+      </div>
       </template>
 
       <!-- Gallery — every photo on the project, flattened. No grouping, no
            count badges: each tile already is one photo, so there's nothing
            to count. Filter/sort come in the next two commits. -->
       <template v-else-if="activeTab === 'gallery'">
-      <div class="mb-3 flex items-center justify-between">
+      <div class="sm:flex sm:h-full sm:min-h-0 sm:flex-1 sm:flex-col">
+      <div class="mb-3 flex flex-shrink-0 items-center justify-between">
         <h2 class="text-lg font-semibold text-ink">
           Gallery · {{ galleryFilter === 'byTask' ? `${galleryAlbums.length} albums` : sortedGalleryPhotos.length }}
         </h2>
@@ -1322,6 +1334,7 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <div class="sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
       <p
         v-if="galleryFilter === 'byTask' ? !galleryAlbums.length : !sortedGalleryPhotos.length"
         class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
@@ -1359,6 +1372,8 @@ onUnmounted(() => {
             <img :src="photo.thumb" alt="" class="h-full w-full object-cover" />
           </button>
         </div>
+      </div>
+      </div>
       </div>
       </template>
         </div>
