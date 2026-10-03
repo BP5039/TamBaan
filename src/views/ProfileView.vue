@@ -12,6 +12,7 @@ import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import type { PortfolioItem } from '@/types'
 import type { Project } from '@/types/project'
 
@@ -147,7 +148,14 @@ async function respondToInvitation(project: import('@/types/project').Project, a
   }
 }
 
-async function logout() {
+const showLogoutConfirm = ref(false)
+
+function handleLogoutClick() {
+  showLogoutConfirm.value = true
+}
+
+async function confirmLogout() {
+  showLogoutConfirm.value = false
   await authStore.logout()
   router.push('/home')
 }
@@ -198,7 +206,7 @@ async function logout() {
             <button
               type="button"
               class="w-full rounded-lg border border-error-border px-4 py-2.5 text-sm font-medium text-error hover:bg-error-bg"
-              @click="logout"
+              @click="handleLogoutClick"
             >
               Log out
             </button>
@@ -322,6 +330,16 @@ async function logout() {
       v-if="showCreateProjectModal"
       @close="showCreateProjectModal = false"
       @saved="onProjectCreated"
+    />
+
+    <ConfirmDialog
+      v-if="showLogoutConfirm"
+      title="Log out?"
+      message="You'll need to sign in again to get back to your account."
+      confirm-label="Log out"
+      danger
+      @confirm="confirmLogout"
+      @cancel="showLogoutConfirm = false"
     />
   </div>
 </template>
