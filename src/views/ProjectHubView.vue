@@ -473,42 +473,74 @@ interface ActivityMonthPill {
   label: string
 }
 
+// Left-edge accent class per status, as full literal strings — not built
+// with `.replace()` on dotClass. Tailwind's JIT scanner only generates CSS
+// for class names that appear verbatim somewhere in the source; a string
+// built at runtime (`dotClass.replace('border-', 'border-l-')`) never
+// appears as literal text anywhere, so most of those colors silently never
+// got a stylesheet rule. This map's keys are exactly the dotClass values,
+// and its values are literal enough for Tailwind to see.
+const LEFT_ACCENT_CLASS: Record<string, string> = {
+  'border-muted': 'border-l-muted',
+  'border-pending': 'border-l-pending',
+  'border-error': 'border-l-error',
+  'border-success': 'border-l-success',
+}
+
+// Row 1 of the grid is reserved for the leading month pill; node rows sit
+// at 2, 4, 6…, with a dedicated connector row between each pair (3, 5, 7…).
 const activityPath = computed(() => {
   const entries = filteredActivityEntries.value
+  if (!entries.length) return { positions: [], connectors: [], pills: [], gridTemplateRows: '' }
+
   const positions: ActivityNodePos[] = entries.map((entry, idx) => {
     const rowIdx = Math.floor(idx / 3)
     const posInRow = idx % 3
     const leftToRight = rowIdx % 2 === 0
     const col = (leftToRight ? [1, 3, 5] : [5, 3, 1])[posInRow]
-    return { entry, col, row: rowIdx * 2 + 1 }
+    return { entry, col, row: rowIdx * 2 + 2 }
   })
 
   const connectors: ActivityConnector[] = []
   const pills: ActivityMonthPill[] = []
 
+  // Horizontal connectors within a row never carry a pill — a month change
+  // that happens to fall mid-row is picked up by the next row-turn instead,
+  // so a pill is never squeezed into the narrow connector track between two
+  // nodes (the cause of the overlapping, "odd" placement).
   for (let i = 0; i < positions.length - 1; i++) {
     const a = positions[i]
     const b = positions[i + 1]
-    const monthA = monthLabel(a.entry.sortAt)
-    const monthB = monthLabel(b.entry.sortAt)
-
     if (a.row === b.row) {
-      const col = (a.col + b.col) / 2
-      connectors.push({ key: `h-${a.entry.key}`, col, row: a.row, kind: 'h' })
-      if (monthA !== monthB) pills.push({ key: `m-${a.entry.key}`, col, row: a.row, label: monthB })
-    } else {
-      // The turn: a vertical connector in the row right below `a`, at the
-      // column both `a` and `b` share (the edge the path bounces off).
-      connectors.push({ key: `v-${a.entry.key}`, col: a.col, row: a.row + 1, kind: 'v' })
-      if (monthA !== monthB) pills.push({ key: `m-${a.entry.key}`, col: a.col, row: a.row + 1, label: monthB })
+      connectors.push({ key: `h-${a.entry.key}`, col: (a.col + b.col) / 2, row: a.row, kind: 'h' })
     }
   }
 
-  const dataRowCount = Math.ceil(entries.length / 3)
-  const rowSizes: string[] = []
-  for (let i = 0; i < dataRowCount; i++) {
+  // Row-turn connectors — each gets its own full-width row, so a pill here
+  // always has room. Every row before the last is always exactly 3 entries
+  // (only the final row can be shorter), so its last position is always at
+  // the outer edge column (1 or 5) — exactly where the next row starts too.
+  const rowCount = Math.ceil(entries.length / 3)
+  for (let r = 0; r < rowCount - 1; r++) {
+    const lastOfRow = positions[r * 3 + 2]
+    const nextFirst = positions[(r + 1) * 3]
+    const turnRow = lastOfRow.row + 1
+    connectors.push({ key: `v-row-${r}`, col: lastOfRow.col, row: turnRow, kind: 'v' })
+    const thisMonth = monthLabel(positions[r * 3].entry.sortAt)
+    const nextMonth = monthLabel(nextFirst.entry.sortAt)
+    if (thisMonth !== nextMonth) {
+      pills.push({ key: `m-row-${r}`, col: lastOfRow.col, row: turnRow, label: nextMonth })
+    }
+  }
+
+  // The leading pill — there's no earlier row to diff against, so the
+  // project's first month always gets one, instead of never showing at all.
+  pills.push({ key: 'm-start', col: 3, row: 1, label: monthLabel(entries[0].sortAt) })
+
+  const rowSizes: string[] = ['34px']
+  for (let i = 0; i < rowCount; i++) {
     rowSizes.push('minmax(78px, auto)')
-    if (i < dataRowCount - 1) rowSizes.push('34px')
+    if (i < rowCount - 1) rowSizes.push('34px')
   }
 
   return { positions, connectors, pills, gridTemplateRows: rowSizes.join(' ') }
@@ -685,8 +717,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="w-full px-4 py-8 sm:px-[15%]">
-    <BaseButton variant="ghost" class="mb-4" @click="router.back()">
+  <div class="flex h-full flex-col sm:overflow-hidden">
+    <div class="flex w-full flex-1 flex-col px-4 py-8 sm:overflow-hidden sm:px-[15%]">
+    <BaseButton variant="ghost" class="mb-4 flex-shrink-0 self-start" @click="router.back()">
       ← Back
     </BaseButton>
 
@@ -700,7 +733,7 @@ onUnmounted(() => {
     </p>
 
     <template v-else>
-      <div class="mb-6 flex items-center justify-between">
+      <div class="mb-6 flex flex-shrink-0 items-center justify-between">
         <div class="flex items-center gap-1.5">
           <h1 class="text-xl font-semibold text-ink">{{ project.name }}</h1>
           <button
@@ -736,13 +769,17 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="mb-12 flex flex-col gap-4 sm:flex-row sm:items-start">
+      <div class="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-[280px_1fr] sm:overflow-hidden">
         <!-- Left rail: dates, the two parties, scope of work, the
              completion/review slot, and the tab list switching the panel
              on the right. Same information the old three-column row and
              section headers carried — just organized as one persistent
-             column instead of being repeated per tab. -->
-        <aside class="w-full flex-shrink-0 rounded-card border border-cream bg-white p-4 sm:w-[280px]">
+             column instead of being repeated per tab.
+             A CSS grid row (not flex) so this and the panel beside it
+             stretch to match each other's height by default, each
+             scrolling internally instead of either one overflowing past
+             the container — same pattern as the public profile page. -->
+        <aside class="w-full rounded-card border border-cream bg-white p-4 sm:overflow-y-auto">
           <div v-if="dateRange" class="mb-3 flex items-center gap-1.5 text-xs text-muted">
             <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
               <rect x="3" y="4.5" width="14" height="12" rx="1.5" />
@@ -958,7 +995,7 @@ onUnmounted(() => {
         </aside>
 
         <!-- Right panel: Tasks / Activity / Gallery, swapped by the tab above. -->
-        <div v-if="project.status !== 'pending'" class="w-full flex-1 min-w-0 rounded-card border border-cream bg-white p-4">
+        <div v-if="project.status !== 'pending'" class="w-full min-w-0 rounded-card border border-cream bg-white p-4 sm:overflow-y-auto">
         <template v-if="activeTab === 'tasks'">
       <div class="mb-6 flex items-center justify-between">
         <h2 class="text-lg font-semibold text-ink">Tasks</h2>
@@ -1146,19 +1183,19 @@ onUnmounted(() => {
 
       <div class="mb-6 flex flex-wrap items-center gap-4">
         <span class="flex items-center gap-1.5 text-[11px] text-muted">
-          <span class="h-2.5 w-2.5 rounded-sm border-2 border-muted" />
+          <span class="h-2.5 w-2.5 rounded-sm bg-muted" />
           created
         </span>
         <span class="flex items-center gap-1.5 text-[11px] text-muted">
-          <span class="h-2.5 w-2.5 rounded-sm border-2 border-pending" />
+          <span class="h-2.5 w-2.5 rounded-sm bg-pending" />
           uploaded
         </span>
         <span class="flex items-center gap-1.5 text-[11px] text-muted">
-          <span class="h-2.5 w-2.5 rounded-sm border-2 border-error" />
+          <span class="h-2.5 w-2.5 rounded-sm bg-error" />
           sent back
         </span>
         <span class="flex items-center gap-1.5 text-[11px] text-muted">
-          <span class="h-2.5 w-2.5 rounded-sm border-2 border-success" />
+          <span class="h-2.5 w-2.5 rounded-sm bg-success" />
           verified
         </span>
         <div class="relative ml-auto">
@@ -1187,7 +1224,7 @@ onUnmounted(() => {
         No activity yet.
       </p>
 
-      <div v-else class="max-h-[560px] overflow-y-auto">
+      <div v-else>
         <div
           class="mx-auto grid w-full max-w-[800px]"
           style="grid-template-columns: 1fr 34px 1fr 34px 1fr"
@@ -1217,7 +1254,7 @@ onUnmounted(() => {
             :key="pos.entry.key"
             type="button"
             class="flex items-center gap-2 overflow-hidden rounded-lg border border-l-4 border-cream bg-white p-2 text-left"
-            :class="pos.entry.dotClass.replace('border-', 'border-l-')"
+            :class="LEFT_ACCENT_CLASS[pos.entry.dotClass]"
             :style="{ gridColumn: String(pos.col), gridRow: String(pos.row) }"
             @click="openSnapshot(pos.entry)"
           >
@@ -1328,6 +1365,7 @@ onUnmounted(() => {
       </div>
 
     </template>
+    </div>
 
     <CompleteProjectModal
       v-if="showCompleteModal"
