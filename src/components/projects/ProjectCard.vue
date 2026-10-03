@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/firebase/config'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
 import CardMenu from '@/components/ui/CardMenu.vue'
@@ -8,6 +10,7 @@ import UserAvatar from '@/components/ui/UserAvatar.vue'
 import ImageCountBadge from '@/components/ui/ImageCountBadge.vue'
 import { formatDateRange } from '@/utils/dateFormat'
 import type { Project } from '@/types/project'
+import type { UserProfile } from '@/types'
 
 const props = defineProps<{ project: Project; unreadCount?: number }>()
 
@@ -53,6 +56,34 @@ const otherParty = computed(() => {
   }
   return props.project.homeownerName
 })
+
+// The project doc only ever denormalizes the other party's name, never
+// their photo, so this card always showed initials regardless of whether
+// they actually had one uploaded. One small live fetch keyed off whichever
+// uid otherParty resolves to — same pattern already used for the Project
+// Hub rail's homeowner avatar.
+const otherPartyUid = computed(() => {
+  if (authStore.profile?.role === 'homeowner') {
+    return props.project.contractorUid ?? props.project.pendingInvitationUid ?? null
+  }
+  return props.project.homeownerUid
+})
+
+const otherPartyPhotoURL = ref<string | null>(null)
+watch(
+  otherPartyUid,
+  async (uid) => {
+    otherPartyPhotoURL.value = null
+    if (!uid) return
+    try {
+      const snap = await getDoc(doc(db, 'users', uid))
+      otherPartyPhotoURL.value = (snap.data() as UserProfile | undefined)?.photoURL ?? null
+    } catch {
+      otherPartyPhotoURL.value = null
+    }
+  },
+  { immediate: true },
+)
 
 const dateRange = computed(() =>
   props.project.plannedStartDate && props.project.plannedEndDate
@@ -103,7 +134,7 @@ const dateRange = computed(() =>
     <div class="flex flex-col gap-1 p-3">
       <div v-if="otherParty" class="flex items-center gap-1.5">
         <div class="h-5 w-5 flex-shrink-0 overflow-hidden rounded-full bg-cream">
-          <UserAvatar :name="otherParty" />
+          <UserAvatar :name="otherParty" :photo-url="otherPartyPhotoURL" />
         </div>
         <span class="text-[11px] text-muted">{{ otherParty }}</span>
       </div>
