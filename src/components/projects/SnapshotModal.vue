@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import type { SnapshotTaskState, TaskStatus } from '@/types/project'
+import KanbanColumn from '@/components/projects/KanbanColumn.vue'
+import ImageCountBadge from '@/components/ui/ImageCountBadge.vue'
 
 const props = defineProps<{
   tasks: SnapshotTaskState[]
@@ -29,8 +31,8 @@ function toggle(taskId: string) {
 
 const highlightedState = computed(() => props.tasks.find((t) => t.task.id === props.highlightTaskId))
 
-// Same color family as the Activity dots and the board's own status colors —
-// not_started/created is the one neutral case, the rest map 1:1.
+// Same color family as the Activity accents and the board's own status
+// colors — not_started/created is the one neutral case, the rest map 1:1.
 const borderClass = computed(() => {
   switch (highlightedState.value?.status) {
     case 'awaiting_review':
@@ -88,78 +90,61 @@ onMounted(() => {
         </button>
       </div>
 
-      <div class="mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible">
-        <div
+      <!-- Same shared column + same divide-x container treatment as the
+           live board on the Hub page, instead of this modal keeping its
+           own independently-styled copy. -->
+      <div
+        class="mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto rounded-card border border-cream bg-white pb-1 sm:grid sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-cream sm:overflow-visible sm:p-2"
+      >
+        <KanbanColumn
           v-for="col in COLUMNS"
           :key="col.status"
           :id="columnElId(col.status)"
-          class="w-[85%] flex-shrink-0 snap-center rounded-lg border border-cream bg-white p-2 sm:w-auto"
+          :label="col.label"
+          :count="byStatus(col.status).length"
+          :tasks="byStatus(col.status)"
+          :expanded-id="expandedTaskId"
+          compact
+          :id-of="(t: SnapshotTaskState) => t.task.id"
+          :title-of="(t: SnapshotTaskState) => t.task.title"
+          :highlight-class="(t: SnapshotTaskState) => (t.task.id === highlightTaskId ? borderClass : null)"
+          :dashed="(t: SnapshotTaskState) => t.status === 'not_started'"
+          @toggle="toggle"
         >
-          <p class="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted">
-            {{ col.label }} · {{ byStatus(col.status).length }}
-          </p>
+          <template #task="{ task: entry }">
+            <template v-if="entry.status === 'not_started'">
+              <button
+                v-if="entry.task.referenceImages?.length"
+                type="button"
+                class="mb-1.5 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-surface"
+                @click="$emit('open-lightbox', entry.task.referenceImages, 0)"
+              >
+                <img :src="entry.task.referenceImages[0].thumb" alt="" class="h-full w-full object-cover" />
+              </button>
+              <p class="text-[11px] text-ink/90">{{ entry.task.description }}</p>
+            </template>
 
-          <div class="space-y-1.5">
-            <div
-              v-for="entry in byStatus(col.status)"
-              :key="entry.task.id"
-              class="overflow-hidden rounded-lg border bg-white"
-              :class="
-                entry.task.id === highlightTaskId
-                  ? `border-2 ${borderClass}`
-                  : col.status === 'not_started' ? 'border-dashed border-cream' : 'border-cream'
-              "
-            >
+            <template v-else-if="entry.update">
               <button
                 type="button"
-                class="flex w-full items-center justify-between gap-1 px-2 py-1.5 text-left"
-                @click="toggle(entry.task.id)"
+                class="relative mb-1.5 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                @click="$emit('open-lightbox', entry.update.images, 0)"
               >
-                <span class="truncate text-[11px] font-semibold text-ink">{{ entry.task.title }}</span>
-                <svg
-                  class="h-3 w-3 flex-shrink-0 text-muted transition-transform"
-                  :class="{ 'rotate-180': expandedTaskId === entry.task.id }"
-                  viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
-                </svg>
+                <img :src="entry.update.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                <div class="absolute bottom-1 right-1 scale-[0.8]">
+                  <ImageCountBadge :count="entry.update.images.length" />
+                </div>
               </button>
-
-              <div v-if="expandedTaskId === entry.task.id" class="border-t border-cream p-2">
-                <template v-if="entry.status === 'not_started'">
-                  <button
-                    v-if="entry.task.referenceImages?.length"
-                    type="button"
-                    class="mb-1.5 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-surface"
-                    @click="$emit('open-lightbox', entry.task.referenceImages, 0)"
-                  >
-                    <img :src="entry.task.referenceImages[0].thumb" alt="" class="h-full w-full object-cover" />
-                  </button>
-                  <p class="text-[11px] text-ink/90">{{ entry.task.description }}</p>
-                </template>
-
-                <template v-else-if="entry.update">
-                  <button
-                    type="button"
-                    class="mb-1.5 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
-                    @click="$emit('open-lightbox', entry.update.images, 0)"
-                  >
-                    <img :src="entry.update.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
-                  </button>
-                  <p class="mb-1 text-[11px] text-ink/90">{{ entry.update.description }}</p>
-                  <p
-                    v-if="entry.status === 'sent_back' && entry.update.sentBackReason"
-                    class="rounded-lg bg-error-bg p-1.5 text-[10px] text-error-text"
-                  >
-                    {{ entry.update.sentBackReason }}
-                  </p>
-                </template>
-              </div>
-            </div>
-
-            <p v-if="!byStatus(col.status).length" class="text-[10px] text-muted">—</p>
-          </div>
-        </div>
+              <p class="mb-1 text-[11px] text-ink/90">{{ entry.update.description }}</p>
+              <p
+                v-if="entry.status === 'sent_back' && entry.update.sentBackReason"
+                class="rounded-lg bg-error-bg p-1.5 text-[10px] text-error-text"
+              >
+                {{ entry.update.sentBackReason }}
+              </p>
+            </template>
+          </template>
+        </KanbanColumn>
       </div>
 
       <p class="mt-3 text-center text-[10px] text-muted">
