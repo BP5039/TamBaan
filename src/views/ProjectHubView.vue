@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/firebase/config'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
 import { useTasksStore } from '@/stores/tasks'
@@ -10,22 +12,24 @@ import { useNotificationsStore } from '@/stores/notifications'
 import { labelForCategory } from '@/constants/workCategories'
 import { formatExif } from '@/utils/exif'
 import { formatDateRange } from '@/utils/dateFormat'
-import { getInitials } from '@/utils/initials'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import StarRating from '@/components/ui/StarRating.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import UserAvatar from '@/components/ui/UserAvatar.vue'
+import ImageCountBadge from '@/components/ui/ImageCountBadge.vue'
 import CompleteProjectModal from '@/components/projects/CompleteProjectModal.vue'
 import CreateProjectModal from '@/components/projects/CreateProjectModal.vue'
 import AddProgressModal from '@/components/projects/AddProgressModal.vue'
 import TaskModal from '@/components/projects/TaskModal.vue'
 import SnapshotModal from '@/components/projects/SnapshotModal.vue'
+import KanbanColumn from '@/components/projects/KanbanColumn.vue'
 import PortfolioLightbox from '@/components/profile/PortfolioLightbox.vue'
 import CardMenu from '@/components/ui/CardMenu.vue'
 import type { ProjectTask, ProgressUpdate, TaskStatus, SnapshotTaskState } from '@/types/project'
 import { snapshotAt } from '@/utils/snapshot'
 import { buildGalleryAlbums, type GalleryPhoto, type GalleryAlbum } from '@/utils/gallery'
 import { getScheduleWarning } from '@/utils/scheduleWarnings'
-import type { PortfolioImage } from '@/types'
+import type { PortfolioImage, UserProfile } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 const route = useRoute()
@@ -76,6 +80,29 @@ function openLightbox(images: PortfolioImage[], startIndex = 0) {
   lightboxStartIndex.value = startIndex
 }
 
+// Left-rail tab the right panel is currently showing.
+const activeTab = ref<'tasks' | 'activity' | 'gallery'>('tasks')
+
+// The contractor's photo comes from publicProfileStore (loaded by username
+// below), but nothing fetched the homeowner's — so their avatar never had a
+// photo to show, only initials. One lightweight fetch, independent of that
+// store (which is already committed to holding the contractor's profile).
+const homeownerPhotoURL = ref<string | null>(null)
+watch(
+  () => project.value?.homeownerUid,
+  async (uid) => {
+    homeownerPhotoURL.value = null
+    if (!uid) return
+    try {
+      const snap = await getDoc(doc(db, 'users', uid))
+      homeownerPhotoURL.value = (snap.data() as UserProfile | undefined)?.photoURL ?? null
+    } catch {
+      homeownerPhotoURL.value = null
+    }
+  },
+  { immediate: true },
+)
+
 const contractorSummary = computed(() => {
   const p = publicProfileStore.profile
   if (!p) return ''
@@ -85,29 +112,6 @@ const contractorSummary = computed(() => {
   return parts.join(' · ')
 })
 
-// Description centers when it's short, but switches to left-aligned once it
-// wraps to more than one line — centered multi-line text gets ragged edges.
-const descriptionEl = ref<HTMLElement | null>(null)
-const descriptionWraps = ref(false)
-
-function checkDescriptionWrap() {
-  const el = descriptionEl.value
-  if (!el) return
-  const lineHeight = parseFloat(window.getComputedStyle(el).lineHeight)
-  descriptionWraps.value = el.scrollHeight > lineHeight * 1.4
-}
-
-onMounted(() => {
-  checkDescriptionWrap()
-  window.addEventListener('resize', checkDescriptionWrap)
-})
-onUnmounted(() => {
-  window.removeEventListener('resize', checkDescriptionWrap)
-})
-watch(
-  () => project.value?.description,
-  () => nextTick(checkDescriptionWrap),
-)
 
 const respondLoading = computed(() => projectsStore.loading)
 
@@ -370,13 +374,19 @@ interface ActivityEntry {
   taskId: string
   taskTitle: string
   label: string
+  // Left-edge accent color, as a border-* class — kept as one string so the
+  // legend swatches and the node's accent bar read from the same source.
   dotClass: string
+  thumbUrl?: string
+  imageCount?: number
 }
 
 // Reconstructed from the task and update docs themselves rather than a
 // separate event log — a task's own creation is its first entry, then every
 // update starts "uploaded" at createdAt, and if it's since been reviewed, a
-// second entry captures that transition at updatedAt.
+// second entry captures that transition at updatedAt. Uploaded/sent-back/
+// verified entries carry the update's own first image + count, since a task
+// being "created" never has a photo of its own yet.
 const activityEntries = computed<ActivityEntry[]>(() => {
   const entries: ActivityEntry[] = []
   for (const t of tasksStore.tasks) {
@@ -386,17 +396,21 @@ const activityEntries = computed<ActivityEntry[]>(() => {
       taskId: t.id,
       taskTitle: t.title,
       label: 'created',
-      dotClass: 'bg-muted',
+      dotClass: 'border-muted',
     })
   }
   for (const u of progressStore.updates) {
+    const thumbUrl = u.images[0]?.thumb
+    const imageCount = u.images.length
     entries.push({
       key: `${u.id}-uploaded`,
       sortAt: u.createdAt,
       taskId: u.taskId,
       taskTitle: u.taskTitle,
       label: 'uploaded',
-      dotClass: 'bg-pending',
+      dotClass: 'border-pending',
+      thumbUrl,
+      imageCount,
     })
     if (u.status === 'verified') {
       entries.push({
@@ -405,7 +419,9 @@ const activityEntries = computed<ActivityEntry[]>(() => {
         taskId: u.taskId,
         taskTitle: u.taskTitle,
         label: 'verified',
-        dotClass: 'bg-success',
+        dotClass: 'border-success',
+        thumbUrl,
+        imageCount,
       })
     } else if (u.status === 'sent_back') {
       entries.push({
@@ -414,16 +430,14 @@ const activityEntries = computed<ActivityEntry[]>(() => {
         taskId: u.taskId,
         taskTitle: u.taskTitle,
         label: 'sent back',
-        dotClass: 'bg-error',
+        dotClass: 'border-error',
+        thumbUrl,
+        imageCount,
       })
     }
   }
   return entries.sort((a, b) => a.sortAt - b.sortAt)
 })
-
-type ActivityRowItem =
-  | { type: 'divider'; key: string; label: string }
-  | { type: 'entry'; key: string; entry: ActivityEntry }
 
 // '' means "All tasks" — the filter only narrows what's shown in the log
 // itself; the Snapshot modal always shows the full board regardless.
@@ -434,18 +448,70 @@ const filteredActivityEntries = computed(() =>
     : activityEntries.value,
 )
 
-const activityRow = computed<ActivityRowItem[]>(() => {
-  const items: ActivityRowItem[] = []
-  let lastMonth = ''
-  for (const entry of filteredActivityEntries.value) {
-    const label = monthLabel(entry.sortAt)
-    if (label !== lastMonth) {
-      items.push({ type: 'divider', key: `divider-${label}`, label })
-      lastMonth = label
+// ---- Activity, laid out as a connected node path ----
+//
+// Entries snake three to a row — left-to-right, then right-to-left, and so
+// on — each row's three columns at grid columns 1, 3, 5 (2 and 4 are the
+// connector tracks). Built from whatever `filteredActivityEntries` actually
+// contains, so a short project naturally gets a short, correctly-terminated
+// path instead of a fixed template with empty cells or a dangling line.
+interface ActivityNodePos {
+  entry: ActivityEntry
+  col: number
+  row: number
+}
+interface ActivityConnector {
+  key: string
+  col: number
+  row: number
+  kind: 'h' | 'v'
+}
+interface ActivityMonthPill {
+  key: string
+  col: number
+  row: number
+  label: string
+}
+
+const activityPath = computed(() => {
+  const entries = filteredActivityEntries.value
+  const positions: ActivityNodePos[] = entries.map((entry, idx) => {
+    const rowIdx = Math.floor(idx / 3)
+    const posInRow = idx % 3
+    const leftToRight = rowIdx % 2 === 0
+    const col = (leftToRight ? [1, 3, 5] : [5, 3, 1])[posInRow]
+    return { entry, col, row: rowIdx * 2 + 1 }
+  })
+
+  const connectors: ActivityConnector[] = []
+  const pills: ActivityMonthPill[] = []
+
+  for (let i = 0; i < positions.length - 1; i++) {
+    const a = positions[i]
+    const b = positions[i + 1]
+    const monthA = monthLabel(a.entry.sortAt)
+    const monthB = monthLabel(b.entry.sortAt)
+
+    if (a.row === b.row) {
+      const col = (a.col + b.col) / 2
+      connectors.push({ key: `h-${a.entry.key}`, col, row: a.row, kind: 'h' })
+      if (monthA !== monthB) pills.push({ key: `m-${a.entry.key}`, col, row: a.row, label: monthB })
+    } else {
+      // The turn: a vertical connector in the row right below `a`, at the
+      // column both `a` and `b` share (the edge the path bounces off).
+      connectors.push({ key: `v-${a.entry.key}`, col: a.col, row: a.row + 1, kind: 'v' })
+      if (monthA !== monthB) pills.push({ key: `m-${a.entry.key}`, col: a.col, row: a.row + 1, label: monthB })
     }
-    items.push({ type: 'entry', key: entry.key, entry })
   }
-  return items
+
+  const dataRowCount = Math.ceil(entries.length / 3)
+  const rowSizes: string[] = []
+  for (let i = 0; i < dataRowCount; i++) {
+    rowSizes.push('minmax(78px, auto)')
+    if (i < dataRowCount - 1) rowSizes.push('34px')
+  }
+
+  return { positions, connectors, pills, gridTemplateRows: rowSizes.join(' ') }
 })
 
 // ---- Snapshot: full board state (status + the specific update that was
@@ -670,41 +736,14 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <!-- Column 1: Project info -->
-        <div class="h-full rounded-card border border-cream bg-white p-4 text-center">
-          <div class="relative mx-auto mb-2.5 h-12 w-12">
-            <button
-              v-if="project.referenceImages?.length"
-              type="button"
-              class="h-12 w-12 overflow-hidden rounded-full bg-cream"
-              @click="openLightbox(project.referenceImages, 0)"
-            >
-              <img :src="project.referenceImages[0].thumb" alt="" class="h-full w-full object-cover" />
-            </button>
-            <div v-else class="flex h-12 w-12 items-center justify-center rounded-full bg-cream">
-              <svg class="h-5 w-5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-1.519-3.75L12 12l1.519 1.5m0 0L15 15l-1.481-1.5" />
-              </svg>
-            </div>
-            <span
-              v-if="project.referenceImages && project.referenceImages.length > 1"
-              class="absolute -bottom-0.5 -right-0.5 rounded-full border-2 border-white bg-ink px-1 text-[9px] font-semibold text-white"
-            >
-              {{ project.referenceImages.length }}
-            </span>
-          </div>
-
-          <p class="mb-1.5 text-sm font-semibold text-ink">{{ project.name }}</p>
-          <p
-            v-if="project.description"
-            ref="descriptionEl"
-            class="mb-3 text-xs text-ink/90"
-            :class="descriptionWraps ? 'text-left' : 'text-center'"
-          >
-            {{ project.description }}
-          </p>
-          <div v-if="dateRange" class="mb-2 flex items-center justify-center gap-1.5 text-xs text-muted">
+      <div class="mb-12 flex flex-col gap-4 sm:flex-row sm:items-start">
+        <!-- Left rail: dates, the two parties, scope of work, the
+             completion/review slot, and the tab list switching the panel
+             on the right. Same information the old three-column row and
+             section headers carried — just organized as one persistent
+             column instead of being repeated per tab. -->
+        <aside class="w-full flex-shrink-0 rounded-card border border-cream bg-white p-4 sm:w-[280px]">
+          <div v-if="dateRange" class="mb-3 flex items-center gap-1.5 text-xs text-muted">
             <svg class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
               <rect x="3" y="4.5" width="14" height="12" rx="1.5" />
               <path stroke-linecap="round" d="M3 8h14M7 2.5v3M13 2.5v3" />
@@ -712,65 +751,59 @@ onUnmounted(() => {
             <span class="font-semibold text-ink">{{ dateRange }}</span>
           </div>
 
-          <p class="mb-1 text-[11px] text-muted">Homeowner</p>
-          <div class="flex items-center justify-center gap-1.5 text-xs text-ink">
-            <div class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
-              {{ getInitials(project.homeownerName) }}
+          <!-- Homeowner — the whole row is clickable, not just the name. -->
+          <component
+            :is="project.homeownerUsername ? 'router-link' : 'div'"
+            :to="project.homeownerUsername ? `/discover/${project.homeownerUsername}` : undefined"
+            class="mb-2.5 flex items-center gap-2"
+            :class="project.homeownerUsername ? 'group' : ''"
+          >
+            <div class="h-[26px] w-[26px] flex-shrink-0 overflow-hidden rounded-full bg-cream">
+              <UserAvatar :name="project.homeownerName" :photo-url="homeownerPhotoURL" />
             </div>
-            <router-link
-              v-if="project.homeownerUsername"
-              :to="`/discover/${project.homeownerUsername}`"
-              class="font-medium text-primary underline"
-            >
-              {{ project.homeownerName }}
-            </router-link>
-            <span v-else class="font-medium">{{ project.homeownerName }}</span>
-          </div>
-        </div>
+            <div class="min-w-0">
+              <p class="text-[9.5px] uppercase tracking-wide text-muted">Homeowner</p>
+              <p
+                class="truncate text-xs font-medium text-ink"
+                :class="project.homeownerUsername ? 'underline decoration-ink/25 group-hover:decoration-primary' : ''"
+              >
+                {{ project.homeownerName }}
+              </p>
+            </div>
+          </component>
 
-        <!-- Column 2: Professional info — whatever the current contractor relationship is -->
-        <div class="h-full">
-          <div v-if="project.contractorUid" class="h-full rounded-card border border-cream bg-white p-4 text-center">
-            <div class="mx-auto mb-2.5 h-12 w-12 overflow-hidden rounded-full bg-cream">
-              <img
-                v-if="publicProfileStore.profile?.photoURL"
-                :src="publicProfileStore.profile.photoURL"
-                alt=""
-                class="h-full w-full object-cover"
-              />
+          <!-- Professional — whatever the current contractor relationship is. -->
+          <component
+            :is="project.contractorUsername ? 'router-link' : 'div'"
+            v-if="project.contractorUid"
+            :to="project.contractorUsername ? `/discover/${project.contractorUsername}` : undefined"
+            class="mb-3 flex items-center gap-2"
+            :class="project.contractorUsername ? 'group' : ''"
+          >
+            <div class="h-[26px] w-[26px] flex-shrink-0 overflow-hidden rounded-full bg-cream">
+              <UserAvatar :name="project.contractorName ?? ''" :photo-url="publicProfileStore.profile?.photoURL ?? null" />
             </div>
-            <router-link
-              v-if="project.contractorUsername"
-              :to="`/discover/${project.contractorUsername}`"
-              class="text-sm font-medium text-ink hover:underline"
-            >
-              {{ project.contractorName }}
-            </router-link>
-            <p v-else class="text-sm font-medium text-ink">{{ project.contractorName }}</p>
-            <StarRating
-              v-if="publicProfileStore.profile"
-              :rating="publicProfileStore.profile.rating ?? null"
-              :count="publicProfileStore.profile.ratingCount ?? 0"
-              class="mt-1 justify-center"
-            />
-            <p v-if="contractorSummary" class="mt-2 text-[11px] text-muted">{{ contractorSummary }}</p>
-            <router-link
-              v-if="project.contractorUsername"
-              :to="`/discover/${project.contractorUsername}`"
-              class="mt-3 block text-xs font-semibold text-primary underline"
-            >
-              View full profile
-            </router-link>
-          </div>
+            <div class="min-w-0">
+              <p class="text-[9.5px] uppercase tracking-wide text-muted">Professional</p>
+              <p
+                class="truncate text-xs font-medium text-ink"
+                :class="project.contractorUsername ? 'underline decoration-ink/25 group-hover:decoration-primary' : ''"
+              >
+                {{ project.contractorName }}
+                <span v-if="publicProfileStore.profile?.rating" class="font-normal text-muted">· ★{{ publicProfileStore.profile.rating.toFixed(1) }}</span>
+              </p>
+              <p v-if="contractorSummary" class="truncate text-[10.5px] text-muted">{{ contractorSummary }}</p>
+            </div>
+          </component>
 
           <div
             v-else-if="isPendingInvitee"
-            class="h-full rounded-card border border-pending-border bg-pending-bg p-4"
+            class="mb-3 rounded-card border border-pending-border bg-pending-bg p-3"
           >
             <p class="mb-1 text-xs text-pending-text">
               {{ project.homeownerName }} invited you to this project
             </p>
-            <p v-if="project.invitationExpiresAt" class="mb-3 text-[11px] font-semibold text-pending-text">
+            <p v-if="project.invitationExpiresAt" class="mb-2 text-[11px] font-semibold text-pending-text">
               {{ formatCountdown(project.invitationExpiresAt) }}
             </p>
             <div class="flex gap-2">
@@ -785,7 +818,7 @@ onUnmounted(() => {
 
           <div
             v-else-if="project.pendingInvitationUid"
-            class="h-full rounded-card border border-pending-border bg-pending-bg p-4"
+            class="mb-3 rounded-card border border-pending-border bg-pending-bg p-3"
           >
             <p class="mb-1 text-xs text-pending-text">
               Invitation sent to {{ project.pendingInvitationName }} — waiting for their response
@@ -795,7 +828,7 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <div v-else-if="isHomeowner" class="flex h-full flex-col items-center justify-center gap-2 rounded-card border border-dashed border-cream p-4 text-center">
+          <div v-else-if="isHomeowner" class="mb-3 flex flex-col items-start gap-2 rounded-card border border-dashed border-cream p-3">
             <p class="text-xs text-muted">No contractor invited yet.</p>
             <router-link
               to="/discover"
@@ -804,89 +837,129 @@ onUnmounted(() => {
               Find professionals
             </router-link>
           </div>
-        </div>
 
-        <!-- Column 3: Mark complete / Review -->
-        <div
-          v-if="isHomeowner && project.status === 'active'"
-          class="h-full rounded-card border border-cream bg-white p-4 text-center"
-        >
-          <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-success-bg">
-            <svg class="h-5 w-5 text-success-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
+          <!-- Scope of work — the framed heading treatment, same prose as before. -->
+          <div class="mb-3 rounded-card border border-cream bg-surface p-3">
+            <div class="mb-1.5 flex items-center justify-between gap-2">
+              <span class="text-[9.5px] font-bold uppercase tracking-wide text-muted">Scope of work</span>
+              <button
+                v-if="project.referenceImages?.length"
+                type="button"
+                class="relative h-6 w-6 flex-shrink-0 overflow-hidden rounded-lg bg-cream"
+                @click="openLightbox(project.referenceImages, 0)"
+              >
+                <img :src="project.referenceImages[0].thumb" alt="" class="h-full w-full object-cover" />
+                <span
+                  v-if="project.referenceImages.length > 1"
+                  class="absolute -bottom-0.5 -right-0.5 rounded-full border border-white bg-ink px-0.5 text-[8px] font-semibold text-white"
+                >
+                  {{ project.referenceImages.length }}
+                </span>
+              </button>
+            </div>
+            <p v-if="project.description" class="text-[11.5px] leading-relaxed text-ink/90">
+              {{ project.description }}
+            </p>
+            <p v-else class="text-[11.5px] italic text-muted">No scope described yet.</p>
           </div>
-          <p class="mb-1.5 text-sm font-semibold text-ink">Mark complete</p>
-          <p class="mb-3 text-left text-xs text-muted">
-            {{
-              allTasksDone
-                ? "All tasks are done. Rate the work and close out this project."
-                : "Finish and verify every task before completing this project."
-            }}
-          </p>
-          <BaseButton full-width :disabled="!allTasksDone" @click="showCompleteModal = true">
-            Complete project
-          </BaseButton>
-        </div>
 
-        <div v-else-if="project.status === 'completed' && project.review" class="h-full rounded-card border border-cream bg-white p-4 text-center">
+          <!-- Completion / review slot -->
           <div
-            class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full"
-            :class="reviewScoreClass(project.review.overall).bg"
+            v-if="isHomeowner && project.status === 'active'"
+            class="mb-3 rounded-card border border-cream bg-white p-3"
           >
-            <span class="text-sm font-bold" :class="reviewScoreClass(project.review.overall).text">{{ project.review.overall.toFixed(1) }}</span>
+            <p class="mb-1 text-xs font-semibold text-ink">Mark complete</p>
+            <p class="mb-2 text-[11px] text-muted">
+              {{
+                allTasksDone
+                  ? "All tasks are done. Rate the work and close out this project."
+                  : "Finish and verify every task before completing this project."
+              }}
+            </p>
+            <BaseButton full-width :disabled="!allTasksDone" @click="showCompleteModal = true">
+              Complete project
+            </BaseButton>
           </div>
-          <p class="mb-2 text-sm font-semibold text-ink">Review</p>
-          <div class="text-left text-xs text-ink">
-            <div class="mb-1 flex items-center justify-between">
-              <span>Work quality</span>
-              <StarRating :rating="project.review.workQuality" :count="0" />
-            </div>
-            <div class="mb-1 flex items-center justify-between">
-              <span>Communication</span>
-              <StarRating :rating="project.review.communication" :count="0" />
-            </div>
-            <div class="mb-2 flex items-center justify-between">
-              <span>Timeliness</span>
-              <StarRating :rating="project.review.timeliness" :count="0" />
-            </div>
-            <p v-if="project.review.comment" class="text-xs italic text-muted">{{ project.review.comment }}</p>
-          </div>
-        </div>
 
-        <!-- Ghosted preview — anyone viewing a still-pending project (homeowner or
-             the professional deciding on an invite) sees what this slot becomes. -->
-        <div
-          v-else-if="project.status === 'pending'"
-          class="h-full rounded-card border border-dashed border-cream bg-surface p-4 text-center opacity-70"
-        >
-          <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-cream">
-            <svg class="h-5 w-5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
+          <div v-else-if="project.status === 'completed' && project.review" class="mb-3 rounded-card border border-cream bg-white p-3">
+            <div class="mb-2 flex items-center gap-2">
+              <span
+                class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                :class="[reviewScoreClass(project.review.overall).bg, reviewScoreClass(project.review.overall).text]"
+              >
+                {{ project.review.overall.toFixed(1) }}
+              </span>
+              <p class="text-xs font-semibold text-ink">Review</p>
+            </div>
+            <div class="text-[11px] text-ink">
+              <div class="mb-1 flex items-center justify-between">
+                <span>Work quality</span>
+                <StarRating :rating="project.review.workQuality" :count="0" />
+              </div>
+              <div class="mb-1 flex items-center justify-between">
+                <span>Communication</span>
+                <StarRating :rating="project.review.communication" :count="0" />
+              </div>
+              <div class="mb-2 flex items-center justify-between">
+                <span>Timeliness</span>
+                <StarRating :rating="project.review.timeliness" :count="0" />
+              </div>
+              <p v-if="project.review.comment" class="text-[11px] italic text-muted">{{ project.review.comment }}</p>
+            </div>
           </div>
-          <p class="mb-1.5 text-sm font-semibold text-muted">Mark complete</p>
-          <p class="text-xs text-muted">Available once a professional is on board and every task is done.</p>
-        </div>
 
-        <!-- Informational — the contractor's own view of an active project. Only
-             the homeowner marks completion, so this just tells them where things stand. -->
-        <div
-          v-else-if="isContractor && project.status === 'active'"
-          class="h-full rounded-card border border-cream bg-white p-4 text-center"
-        >
-          <div class="mx-auto mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-pending-bg">
-            <svg class="h-5 w-5 text-pending-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2M12 21a9 9 0 100-18 9 9 0 000 18z" />
-            </svg>
+          <!-- Ghosted preview — anyone viewing a still-pending project (homeowner or
+               the professional deciding on an invite) sees what this slot becomes. -->
+          <div
+            v-else-if="project.status === 'pending'"
+            class="mb-3 rounded-card border border-dashed border-cream bg-surface p-3 opacity-70"
+          >
+            <p class="mb-1 text-xs font-semibold text-muted">Mark complete</p>
+            <p class="text-[11px] text-muted">Available once a professional is on board and every task is done.</p>
           </div>
-          <p class="mb-1.5 text-sm font-semibold text-ink">Completion</p>
-          <p class="text-xs text-muted">The homeowner will mark this complete once every task is verified.</p>
-        </div>
-      </div>
 
-      <!-- Tasks, as a Kanban board — collapsed rows expand on click. -->
-      <template v-if="project.status !== 'pending'">
+          <!-- Informational — the contractor's own view of an active project. Only
+               the homeowner marks completion, so this just tells them where things stand. -->
+          <div
+            v-else-if="isContractor && project.status === 'active'"
+            class="mb-3 rounded-card border border-cream bg-white p-3"
+          >
+            <p class="mb-1 text-xs font-semibold text-ink">Completion</p>
+            <p class="text-[11px] text-muted">The homeowner will mark this complete once every task is verified.</p>
+          </div>
+
+          <!-- Tab list — only meaningful once there's a board to show. -->
+          <div v-if="project.status !== 'pending'" class="flex flex-col gap-1 border-t border-cream pt-3">
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-2 text-left text-[12.5px] font-medium transition"
+              :class="activeTab === 'tasks' ? 'bg-primary text-white' : 'text-ink hover:bg-cream/60'"
+              @click="activeTab = 'tasks'"
+            >
+              Tasks
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-2 text-left text-[12.5px] font-medium transition"
+              :class="activeTab === 'activity' ? 'bg-primary text-white' : 'text-ink hover:bg-cream/60'"
+              @click="activeTab = 'activity'"
+            >
+              Activity
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-2 text-left text-[12.5px] font-medium transition"
+              :class="activeTab === 'gallery' ? 'bg-primary text-white' : 'text-ink hover:bg-cream/60'"
+              @click="activeTab = 'gallery'"
+            >
+              Gallery · {{ galleryPhotos.length }}
+            </button>
+          </div>
+        </aside>
+
+        <!-- Right panel: Tasks / Activity / Gallery, swapped by the tab above. -->
+        <div v-if="project.status !== 'pending'" class="w-full flex-1 min-w-0 rounded-card border border-cream bg-white p-4">
+        <template v-if="activeTab === 'tasks'">
       <div class="mb-6 flex items-center justify-between">
         <h2 class="text-lg font-semibold text-ink">Tasks</h2>
         <BaseButton v-if="isHomeowner" @click="openAddTask">+ Add task</BaseButton>
@@ -909,223 +982,183 @@ onUnmounted(() => {
 
       <p
         v-if="!tasksStore.tasks.length"
-        class="mb-12 rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
+        class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
       >
         No tasks yet.
       </p>
 
-      <div v-else class="mb-12 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-4 sm:overflow-visible sm:pb-0">
-        <div
+      <div
+        v-else
+        class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-4 sm:gap-0 sm:divide-x sm:divide-cream sm:overflow-visible sm:pb-2"
+      >
+        <KanbanColumn
           v-for="column in TASK_COLUMNS"
           :key="column.status"
-          class="w-full flex-shrink-0 snap-center rounded-card border border-cream bg-white p-3 sm:w-auto"
+          :label="column.label"
+          :count="tasksByStatus[column.status].length"
+          :tasks="tasksByStatus[column.status]"
+          :expanded-id="expandedTaskId"
+          :id-of="(t: ProjectTask) => t.id"
+          :title-of="(t: ProjectTask) => t.title"
+          :dashed="() => column.status === 'not_started'"
+          :badge="(t: ProjectTask) =>
+            t.status === 'awaiting_review' && latestUpdateFor(t.id)
+              ? statusBadge(t.status, latestUpdateFor(t.id)!.createdAt)
+              : null
+          "
+          @toggle="toggleTask"
         >
-          <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
-            {{ column.label }} · {{ tasksByStatus[column.status].length }}
-          </p>
+          <template #task="{ task }">
+            <div :id="taskCardId(task.id)">
+            <template v-if="task.status === 'not_started'">
+              <div class="relative mb-2">
+                <button
+                  type="button"
+                  class="block aspect-[4/3] w-full overflow-hidden rounded-lg bg-surface"
+                  @click="task.referenceImages?.length ? openLightbox(task.referenceImages) : undefined"
+                >
+                  <img
+                    v-if="task.referenceImages?.length"
+                    :src="task.referenceImages[0].thumb"
+                    alt=""
+                    class="h-full w-full object-cover"
+                  />
+                  <div v-else class="flex h-full w-full items-center justify-center">
+                    <svg class="h-6 w-6 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5V6.75A2.25 2.25 0 015.25 4.5h2.379a1.5 1.5 0 001.06-.44l.842-.84A1.5 1.5 0 0110.6 2.75h2.8a1.5 1.5 0 011.06.44l.842.84a1.5 1.5 0 001.06.44h2.379A2.25 2.25 0 0121 6.75v9.75a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 16.5z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 11.25a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                </button>
+                <div v-if="isHomeowner" class="absolute right-1.5 top-1.5">
+                  <CardMenu
+                    :items="[
+                      { label: 'Edit', action: () => openEditTask(task) },
+                      { label: 'Delete', action: () => handleTaskDelete(task.id), variant: 'danger' },
+                    ]"
+                  />
+                </div>
+              </div>
+              <p class="mb-2 text-xs text-ink/90">{{ task.description }}</p>
+              <BaseButton v-if="isContractor" full-width @click="openUploadFor(task.id)">
+                Upload progress
+              </BaseButton>
+            </template>
 
-          <div class="space-y-2">
-            <div
-              v-for="task in tasksByStatus[column.status]"
-              :id="taskCardId(task.id)"
-              :key="task.id"
-              class="overflow-hidden rounded-lg border bg-white"
-              :class="column.status === 'not_started' ? 'border-dashed border-cream' : 'border-cream'"
-            >
+            <template v-else-if="task.status === 'awaiting_review' && latestUpdateFor(task.id)">
               <button
                 type="button"
-                class="flex w-full items-center justify-between gap-2 p-2.5 text-left"
-                @click="toggleTask(task.id)"
+                class="relative mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                @click="openLightbox(latestUpdateFor(task.id)!.images)"
               >
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-sm font-semibold text-ink">{{ task.title }}</span>
-                  <span
-                    v-if="task.status === 'awaiting_review' && latestUpdateFor(task.id)"
-                    class="mt-1 inline-block rounded-lg px-1.5 py-0.5 text-[10px] font-medium"
-                    :class="statusBadge(task.status, latestUpdateFor(task.id)!.createdAt).class"
-                  >
-                    {{ statusBadge(task.status, latestUpdateFor(task.id)!.createdAt).text }}
-                  </span>
-                </span>
-                <svg
-                  class="h-3.5 w-3.5 flex-shrink-0 text-muted transition-transform"
-                  :class="{ 'rotate-180': expandedTaskId === task.id }"
-                  viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 7.5L10 12.5L15 7.5" />
-                </svg>
+                <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                <div class="absolute bottom-1.5 right-1.5">
+                  <ImageCountBadge :count="latestUpdateFor(task.id)!.images.length" />
+                </div>
               </button>
+              <p class="mb-1 text-xs text-ink/90">{{ latestUpdateFor(task.id)!.description }}</p>
+              <p class="mb-2 text-[11px] text-muted">
+                {{ new Date(latestUpdateFor(task.id)!.createdAt).toLocaleDateString() }}
+                <span v-if="latestUpdateFor(task.id)!.exifTimestamp || latestUpdateFor(task.id)!.exifDevice">
+                  · {{ formatExif({ timestamp: latestUpdateFor(task.id)!.exifTimestamp, device: latestUpdateFor(task.id)!.exifDevice }) }}
+                </span>
+              </p>
 
-              <div v-if="expandedTaskId === task.id" class="border-t border-cream p-2.5">
-                <template v-if="task.status === 'not_started'">
-                  <div class="relative mb-2">
-                    <button
-                      type="button"
-                      class="block aspect-[4/3] w-full overflow-hidden rounded-lg bg-surface"
-                      @click="task.referenceImages?.length ? openLightbox(task.referenceImages) : undefined"
-                    >
-                      <img
-                        v-if="task.referenceImages?.length"
-                        :src="task.referenceImages[0].thumb"
-                        alt=""
-                        class="h-full w-full object-cover"
-                      />
-                      <div v-else class="flex h-full w-full items-center justify-center">
-                        <svg class="h-6 w-6 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5V6.75A2.25 2.25 0 015.25 4.5h2.379a1.5 1.5 0 001.06-.44l.842-.84A1.5 1.5 0 0110.6 2.75h2.8a1.5 1.5 0 011.06.44l.842.84a1.5 1.5 0 001.06.44h2.379A2.25 2.25 0 0121 6.75v9.75a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 16.5z" />
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11.25a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
+              <template v-if="isHomeowner">
+                <div v-if="sendBackTargetId === latestUpdateFor(task.id)!.id" class="mt-2">
+                  <textarea
+                    v-model="sendBackReason"
+                    rows="2"
+                    placeholder="What needs fixing?"
+                    class="mb-1 w-full resize-none rounded-lg border border-cream px-2.5 py-1.5 text-xs text-ink focus:outline-none"
+                  />
+                  <p v-if="sendBackError" class="mb-1 text-[11px] text-error-text">{{ sendBackError }}</p>
+                  <div class="flex gap-2">
+                    <button type="button" class="flex-1 rounded-lg border border-cream py-1.5 text-xs font-medium text-muted hover:bg-cream/40" @click="cancelSendBack">
+                      Cancel
                     </button>
-                    <div v-if="isHomeowner" class="absolute right-1.5 top-1.5">
-                      <CardMenu
-                        :items="[
-                          { label: 'Edit', action: () => openEditTask(task) },
-                          { label: 'Delete', action: () => handleTaskDelete(task.id), variant: 'danger' },
-                        ]"
-                      />
-                    </div>
+                    <button type="button" class="flex-1 rounded-lg bg-error py-1.5 text-xs font-semibold text-white hover:opacity-90" @click="confirmSendBack(latestUpdateFor(task.id)!.id)">
+                      Confirm send back
+                    </button>
                   </div>
-                  <p class="mb-2 text-xs text-ink/90">{{ task.description }}</p>
-                  <BaseButton v-if="isContractor" full-width @click="openUploadFor(task.id)">
-                    Upload progress
-                  </BaseButton>
-                </template>
-
-                <template v-else-if="task.status === 'awaiting_review' && latestUpdateFor(task.id)">
+                </div>
+                <div v-else class="flex gap-2">
                   <button
                     type="button"
-                    class="relative mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
-                    @click="openLightbox(latestUpdateFor(task.id)!.images)"
+                    class="flex-1 rounded-lg border border-error-border py-1.5 text-xs font-semibold text-error hover:bg-error-bg"
+                    @click="startSendBack(latestUpdateFor(task.id)!.id)"
                   >
-                    <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
-                    <span
-                      v-if="latestUpdateFor(task.id)!.images.length"
-                      class="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-ink/60 px-1.5 py-0.5 text-[10px] font-semibold text-white"
-                    >
-                      <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
-                      </svg>
-                      {{ latestUpdateFor(task.id)!.images.length }}
-                    </span>
+                    Send back
                   </button>
-                  <p class="mb-1 text-xs text-ink/90">{{ latestUpdateFor(task.id)!.description }}</p>
-                  <p class="mb-2 text-[11px] text-muted">
-                    {{ new Date(latestUpdateFor(task.id)!.createdAt).toLocaleDateString() }}
-                    <span v-if="latestUpdateFor(task.id)!.exifTimestamp || latestUpdateFor(task.id)!.exifDevice">
-                      · {{ formatExif({ timestamp: latestUpdateFor(task.id)!.exifTimestamp, device: latestUpdateFor(task.id)!.exifDevice }) }}
-                    </span>
-                  </p>
-
-                  <template v-if="isHomeowner">
-                    <div v-if="sendBackTargetId === latestUpdateFor(task.id)!.id" class="mt-2">
-                      <textarea
-                        v-model="sendBackReason"
-                        rows="2"
-                        placeholder="What needs fixing?"
-                        class="mb-1 w-full resize-none rounded-lg border border-cream px-2.5 py-1.5 text-xs text-ink focus:outline-none"
-                      />
-                      <p v-if="sendBackError" class="mb-1 text-[11px] text-error-text">{{ sendBackError }}</p>
-                      <div class="flex gap-2">
-                        <button type="button" class="flex-1 rounded-lg border border-cream py-1.5 text-xs font-medium text-muted hover:bg-cream/40" @click="cancelSendBack">
-                          Cancel
-                        </button>
-                        <button type="button" class="flex-1 rounded-lg bg-error py-1.5 text-xs font-semibold text-white hover:opacity-90" @click="confirmSendBack(latestUpdateFor(task.id)!.id)">
-                          Confirm send back
-                        </button>
-                      </div>
-                    </div>
-                    <div v-else class="flex gap-2">
-                      <button
-                        type="button"
-                        class="flex-1 rounded-lg border border-error-border py-1.5 text-xs font-semibold text-error hover:bg-error-bg"
-                        @click="startSendBack(latestUpdateFor(task.id)!.id)"
-                      >
-                        Send back
-                      </button>
-                      <button
-                        type="button"
-                        class="flex-1 rounded-lg bg-primary py-1.5 text-xs font-semibold text-white hover:bg-primary-dark"
-                        @click="verify(latestUpdateFor(task.id)!.id)"
-                      >
-                        Confirm
-                      </button>
-                    </div>
-                  </template>
-                </template>
-
-                <template v-else-if="task.status === 'sent_back' && latestUpdateFor(task.id)">
                   <button
                     type="button"
-                    class="relative mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
-                    @click="openLightbox(latestUpdateFor(task.id)!.images)"
+                    class="flex-1 rounded-lg bg-primary py-1.5 text-xs font-semibold text-white hover:bg-primary-dark"
+                    @click="verify(latestUpdateFor(task.id)!.id)"
                   >
-                    <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
-                    <span
-                      v-if="latestUpdateFor(task.id)!.images.length"
-                      class="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-ink/60 px-1.5 py-0.5 text-[10px] font-semibold text-white"
-                    >
-                      <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
-                      </svg>
-                      {{ latestUpdateFor(task.id)!.images.length }}
-                    </span>
+                    Confirm
                   </button>
-                  <p class="mb-2 rounded-lg bg-error-bg p-2 text-xs text-error-text">
-                    {{ latestUpdateFor(task.id)!.sentBackReason }}
-                  </p>
-                  <BaseButton v-if="isContractor" variant="outline" full-width @click="openUploadFor(task.id)">
-                    Retry upload
-                  </BaseButton>
-                </template>
+                </div>
+              </template>
+            </template>
 
-                <template v-else-if="task.status === 'done' && latestUpdateFor(task.id)">
-                  <button
-                    type="button"
-                    class="relative mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
-                    @click="openLightbox(latestUpdateFor(task.id)!.images)"
-                  >
-                    <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
-                    <span
-                      v-if="latestUpdateFor(task.id)!.images.length"
-                      class="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-ink/60 px-1.5 py-0.5 text-[10px] font-semibold text-white"
-                    >
-                      <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
-                      </svg>
-                      {{ latestUpdateFor(task.id)!.images.length }}
-                    </span>
-                  </button>
-                  <p class="text-xs text-ink/90">{{ latestUpdateFor(task.id)!.description }}</p>
-                </template>
-              </div>
+            <template v-else-if="task.status === 'sent_back' && latestUpdateFor(task.id)">
+              <button
+                type="button"
+                class="relative mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                @click="openLightbox(latestUpdateFor(task.id)!.images)"
+              >
+                <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                <div class="absolute bottom-1.5 right-1.5">
+                  <ImageCountBadge :count="latestUpdateFor(task.id)!.images.length" />
+                </div>
+              </button>
+              <p class="mb-2 rounded-lg bg-error-bg p-2 text-xs text-error-text">
+                {{ latestUpdateFor(task.id)!.sentBackReason }}
+              </p>
+              <BaseButton v-if="isContractor" variant="outline" full-width @click="openUploadFor(task.id)">
+                Retry upload
+              </BaseButton>
+            </template>
+
+            <template v-else-if="task.status === 'done' && latestUpdateFor(task.id)">
+              <button
+                type="button"
+                class="relative mb-2 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-cream"
+                @click="openLightbox(latestUpdateFor(task.id)!.images)"
+              >
+                <img :src="latestUpdateFor(task.id)!.images[0]?.thumb" alt="" class="h-full w-full object-cover" />
+                <div class="absolute bottom-1.5 right-1.5">
+                  <ImageCountBadge :count="latestUpdateFor(task.id)!.images.length" />
+                </div>
+              </button>
+              <p class="text-xs text-ink/90">{{ latestUpdateFor(task.id)!.description }}</p>
+            </template>
             </div>
-          </div>
-        </div>
+          </template>
+        </KanbanColumn>
       </div>
       </template>
 
-      <!-- Activity — a lightweight log, not the interactive surface. Same
-           continuous-line visual flow as the old Timeline, but compact
-           entries instead of big cards; clicking one expands the task above. -->
-      <template v-if="project.status !== 'pending'">
+      <!-- Activity — a connected node path, snaking three-to-a-row. Each
+           node is clickable and opens the Snapshot modal at that moment. -->
+      <template v-else-if="activeTab === 'activity'">
       <h2 class="mb-3 text-lg font-semibold text-ink">Activity</h2>
 
       <div class="mb-6 flex flex-wrap items-center gap-4">
         <span class="flex items-center gap-1.5 text-[11px] text-muted">
-          <span class="h-2.5 w-2.5 rounded-full bg-muted" />
+          <span class="h-2.5 w-2.5 rounded-sm border-2 border-muted" />
           created
         </span>
         <span class="flex items-center gap-1.5 text-[11px] text-muted">
-          <span class="h-2.5 w-2.5 rounded-full bg-pending" />
+          <span class="h-2.5 w-2.5 rounded-sm border-2 border-pending" />
           uploaded
         </span>
         <span class="flex items-center gap-1.5 text-[11px] text-muted">
-          <span class="h-2.5 w-2.5 rounded-full bg-error" />
+          <span class="h-2.5 w-2.5 rounded-sm border-2 border-error" />
           sent back
         </span>
         <span class="flex items-center gap-1.5 text-[11px] text-muted">
-          <span class="h-2.5 w-2.5 rounded-full bg-success" />
+          <span class="h-2.5 w-2.5 rounded-sm border-2 border-success" />
           verified
         </span>
         <div class="relative ml-auto">
@@ -1148,44 +1181,64 @@ onUnmounted(() => {
       </div>
 
       <p
-        v-if="!activityRow.length"
-        class="mb-12 rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
+        v-if="!activityPath.positions.length"
+        class="rounded-lg border border-dashed border-cream py-10 text-center text-sm text-muted"
       >
         No activity yet.
       </p>
 
-      <div v-else class="mb-12 sm:overflow-x-auto sm:pb-4 sm:pt-2">
-        <div class="relative flex flex-col gap-6 sm:min-w-full sm:w-max sm:flex-row sm:items-start sm:gap-6">
+      <div v-else class="max-h-[560px] overflow-y-auto">
         <div
-          class="absolute left-[7px] top-0 bottom-0 w-0.5 bg-cream sm:left-3.5 sm:right-3.5 sm:top-[7px] sm:bottom-auto sm:h-0.5 sm:w-auto"
-        />
+          class="mx-auto grid w-full max-w-[800px]"
+          style="grid-template-columns: 1fr 34px 1fr 34px 1fr"
+          :style="{ gridTemplateRows: activityPath.gridTemplateRows }"
+        >
+          <div
+            v-for="c in activityPath.connectors"
+            :key="c.key"
+            class="bg-sand"
+            :class="c.kind === 'h' ? 'h-0.5 self-center' : 'w-0.5 justify-self-center'"
+            :style="{ gridColumn: String(c.col), gridRow: String(c.row) }"
+          />
 
-        <template v-for="item in activityRow" :key="item.key">
-          <div v-if="item.type === 'divider'" class="relative z-10 flex-shrink-0 sm:flex sm:h-3.5 sm:items-center">
-            <span class="inline-block whitespace-nowrap rounded-full border border-cream bg-white px-3 py-1 text-xs font-semibold text-wood-text">
-              {{ item.label }}
+          <div
+            v-for="p in activityPath.pills"
+            :key="p.key"
+            class="z-10 flex items-center justify-center"
+            :style="{ gridColumn: String(p.col), gridRow: String(p.row) }"
+          >
+            <span class="whitespace-nowrap rounded-full border border-cream bg-white px-2.5 py-0.5 text-[10px] font-bold text-wood-text">
+              {{ p.label }}
             </span>
           </div>
 
           <button
-            v-else
+            v-for="pos in activityPath.positions"
+            :key="pos.entry.key"
             type="button"
-            class="relative flex gap-3 text-left sm:w-32 sm:flex-shrink-0 sm:flex-col sm:items-center sm:gap-0"
-            @click="openSnapshot(item.entry)"
+            class="flex items-center gap-2 overflow-hidden rounded-lg border border-l-4 border-cream bg-white p-2 text-left"
+            :class="pos.entry.dotClass.replace('border-', 'border-l-')"
+            :style="{ gridColumn: String(pos.col), gridRow: String(pos.row) }"
+            @click="openSnapshot(pos.entry)"
           >
-            <span
-              class="z-10 mt-0.5 h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 border-white sm:mt-0"
-              :class="item.entry.dotClass"
-            />
-            <div class="min-w-0 flex-1 sm:mt-2 sm:w-full sm:text-center">
+            <div v-if="pos.entry.thumbUrl" class="relative h-11 w-11 flex-shrink-0 overflow-hidden rounded-md bg-cream">
+              <img :src="pos.entry.thumbUrl" alt="" class="h-full w-full object-cover" />
+              <div v-if="pos.entry.imageCount" class="absolute bottom-0.5 right-0.5 scale-[0.7]">
+                <ImageCountBadge :count="pos.entry.imageCount" />
+              </div>
+            </div>
+            <div v-else class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md bg-surface text-muted">
+              <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 4.5v11M4.5 10h11" />
+              </svg>
+            </div>
+            <div class="min-w-0">
+              <p class="truncate text-xs font-semibold text-ink">{{ pos.entry.taskTitle }}</p>
               <p class="text-[10px] text-muted">
-                {{ new Date(item.entry.sortAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }}
+                {{ pos.entry.label }} · {{ new Date(pos.entry.sortAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }}
               </p>
-              <p class="truncate text-xs font-medium text-ink">{{ item.entry.taskTitle }}</p>
-              <p class="text-[10px] text-muted">{{ item.entry.label }}</p>
             </div>
           </button>
-        </template>
         </div>
       </div>
       </template>
@@ -1193,7 +1246,7 @@ onUnmounted(() => {
       <!-- Gallery — every photo on the project, flattened. No grouping, no
            count badges: each tile already is one photo, so there's nothing
            to count. Filter/sort come in the next two commits. -->
-      <template v-if="project.status !== 'pending'">
+      <template v-else-if="activeTab === 'gallery'">
       <div class="mb-3 flex items-center justify-between">
         <h2 class="text-lg font-semibold text-ink">
           Gallery · {{ galleryFilter === 'byTask' ? `${galleryAlbums.length} albums` : sortedGalleryPhotos.length }}
@@ -1249,12 +1302,9 @@ onUnmounted(() => {
         >
           <div class="relative aspect-[4/3] bg-cream">
             <img :src="album.photos[0].thumb" alt="" class="h-full w-full object-cover" />
-            <span class="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-ink/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-              <svg class="h-2.5 w-2.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 4.5h18v15H3v-15z" />
-              </svg>
-              {{ album.photos.length }}
-            </span>
+            <div class="absolute bottom-1.5 right-1.5">
+              <ImageCountBadge :count="album.photos.length" />
+            </div>
           </div>
           <p class="truncate p-2 text-xs font-semibold text-ink">{{ album.label }}</p>
         </button>
@@ -1274,6 +1324,8 @@ onUnmounted(() => {
         </div>
       </div>
       </template>
+        </div>
+      </div>
 
     </template>
 
