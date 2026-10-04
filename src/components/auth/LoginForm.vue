@@ -6,7 +6,7 @@ import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 
-const emit = defineEmits<{ success: []; 'switch-to-register': [] }>()
+const emit = defineEmits<{ success: []; 'switch-to-register': []; 'switch-to-forgot-password': [] }>()
 
 const authStore = useAuthStore()
 
@@ -64,14 +64,25 @@ async function onSubmit() {
         :error="fieldErrors.email"
         required
       />
-      <BaseInput
-        v-model="password"
-        type="password"
-        label="Password"
-        autocomplete="current-password"
-        :error="fieldErrors.password"
-        required
-      />
+      <div>
+        <BaseInput
+          v-model="password"
+          type="password"
+          label="Password"
+          autocomplete="current-password"
+          :error="fieldErrors.password"
+          required
+        />
+        <div class="mt-1.5 text-right">
+          <button
+            type="button"
+            class="text-xs font-medium text-primary hover:underline"
+            @click="$emit('switch-to-forgot-password')"
+          >
+            Forgot password?
+          </button>
+        </div>
+      </div>
       <BaseButton type="submit" full-width :loading="loading">Log in</BaseButton>
     </form>
 

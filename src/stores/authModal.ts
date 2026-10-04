@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-type AuthModalMode = 'login' | 'register'
+type AuthModalMode = 'login' | 'register' | 'forgot-password'
 
 interface AuthModalState {
   isOpen: boolean

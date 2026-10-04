@@ -5,6 +5,7 @@ import { useAuthModalStore } from '@/stores/authModal'
 import { useOnboardingModalStore } from '@/stores/onboardingModal'
 import LoginForm from '@/components/auth/LoginForm.vue'
 import RegisterForm from '@/components/auth/RegisterForm.vue'
+import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,10 +48,15 @@ function onSuccess() {
         v-if="authModalStore.mode === 'login'"
         @success="onSuccess"
         @switch-to-register="authModalStore.switchTo('register')"
+        @switch-to-forgot-password="authModalStore.switchTo('forgot-password')"
       />
       <RegisterForm
-        v-else
+        v-else-if="authModalStore.mode === 'register'"
         @success="onSuccess"
+        @switch-to-login="authModalStore.switchTo('login')"
+      />
+      <ForgotPasswordForm
+        v-else
         @switch-to-login="authModalStore.switchTo('login')"
       />
     </div>
