@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  reload,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signOut,
   type User,
@@ -26,6 +28,7 @@ interface AuthState {
   profile: UserProfile | null
   initialized: boolean
   loading: boolean
+  emailVerified: boolean
 }
 
 let readyResolve: () => void
@@ -39,6 +42,7 @@ export const useAuthStore = defineStore('auth', {
     profile: null,
     initialized: false,
     loading: false,
+    emailVerified: false,
   }),
 
   getters: {
@@ -52,6 +56,7 @@ export const useAuthStore = defineStore('auth', {
         this.user = firebaseUser
         const notificationsStore = useNotificationsStore()
         if (firebaseUser) {
+          this.emailVerified = firebaseUser.emailVerified
           await this.fetchProfile(firebaseUser.uid)
           notificationsStore.subscribeToUserNotifications(firebaseUser.uid)
           // Fire-and-forget — don't block app load on this, and don't fail loudly
@@ -61,6 +66,7 @@ export const useAuthStore = defineStore('auth', {
           )
         } else {
           this.profile = null
+          this.emailVerified = false
           notificationsStore.unsubscribeAll()
         }
         if (!this.initialized) {
@@ -80,6 +86,12 @@ export const useAuthStore = defineStore('auth', {
       try {
         const cred = await createUserWithEmailAndPassword(auth, email, password)
         this.user = cred.user
+        this.emailVerified = cred.user.emailVerified
+        // Fire-and-forget — the account exists either way, and a bounced
+        // verification email shouldn't block registration from completing.
+        sendEmailVerification(cred.user).catch((err) =>
+          console.error('Failed to send verification email:', err),
+        )
         return cred.user
       } finally {
         this.loading = false
@@ -91,6 +103,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         const cred = await signInWithEmailAndPassword(auth, email, password)
         this.user = cred.user
+        this.emailVerified = cred.user.emailVerified
         await this.fetchProfile(cred.user.uid)
         return cred.user
       } finally {
@@ -102,6 +115,24 @@ export const useAuthStore = defineStore('auth', {
       await signOut(auth)
       this.user = null
       this.profile = null
+      this.emailVerified = false
+    },
+
+    /**
+     * Firebase's `emailVerified` flag is a snapshot from sign-in time and
+     * doesn't update itself when the person clicks the link in another tab.
+     * Call this when they might have just verified (e.g. the app regains
+     * focus) to pull the current value.
+     */
+    async refreshEmailVerified() {
+      if (!auth.currentUser) return
+      await reload(auth.currentUser)
+      this.emailVerified = auth.currentUser.emailVerified
+    },
+
+    async resendVerificationEmail() {
+      if (!auth.currentUser) return
+      await sendEmailVerification(auth.currentUser)
     },
 
     async fetchProfile(uid: string) {
