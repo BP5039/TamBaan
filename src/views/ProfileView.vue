@@ -13,8 +13,8 @@ import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
-import type { PortfolioItem } from '@/types'
 import type { Project } from '@/types/project'
+import { useMergedWork } from '@/utils/mergedWork'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -24,60 +24,14 @@ const projectsStore = useProjectsStore()
 const profile = computed(() => authStore.profile!)
 const isProfessional = computed(() => profile.value.role === 'professional')
 
-// Merges completed portfolio pieces with currently-active projects into one
-// year-grouped list. Completed projects aren't included here — they're
-// already represented via the portfolio auto-publish system, so including
-// them again would duplicate them.
-type MergedWorkEntry =
-  | { type: 'portfolio'; key: string; year: number; item: PortfolioItem }
-  | { type: 'active'; key: string; year: number; project: Project }
-
-const mergedWorkByYear = computed(() => {
-  const entries: MergedWorkEntry[] = [
-    ...portfolioStore.items.map((item): MergedWorkEntry => ({
-      type: 'portfolio',
-      key: `portfolio-${item.id}`,
-      year: item.year,
-      item,
-    })),
-    ...projectsStore.myProjects
-      .filter((p) => p.status === 'active')
-      .map((project): MergedWorkEntry => ({
-        type: 'active',
-        key: `active-${project.id}`,
-        year: project.plannedStartDate ? new Date(project.plannedStartDate).getFullYear() : new Date().getFullYear(),
-        project,
-      })),
-  ]
-
-  const map = new Map<number, MergedWorkEntry[]>()
-  for (const entry of entries) {
-    if (!map.has(entry.year)) map.set(entry.year, [])
-    map.get(entry.year)!.push(entry)
-  }
-
-  // Active projects first, then completed collaborations, then manually-added
-  // past work — same "most current/actionable first" ordering as the
-  // homeowner's own grid, just with an extra tier for the portfolio-only case.
-  function tier(entry: MergedWorkEntry): number {
-    if (entry.type === 'active') return 0
-    return entry.item.source === 'collaboration' ? 1 : 2
-  }
-  function lastUpdate(entry: MergedWorkEntry): number {
-    return entry.type === 'active' ? entry.project.updatedAt : entry.item.createdAt
-  }
-
-  return Array.from(map.entries())
-    .sort((a, b) => b[0] - a[0])
-    .map(([year, items]) => ({
-      year,
-      items: [...items].sort((a, b) => {
-        const diff = tier(a) - tier(b)
-        if (diff !== 0) return diff
-        return lastUpdate(b) - lastUpdate(a)
-      }),
-    }))
-})
+// Merges every live project (pending/active/completed, read straight from
+// the project doc — same ProjectCard the homeowner's own grid uses) with
+// manually-added past work. A completed collaboration no longer renders
+// from the frozen portfolio snapshot — it IS a project, so it shows exactly
+// like one, consistent for both roles. Shared with MyProjectsView so the
+// two can't drift out of sync again.
+const manualPastWork = computed(() => portfolioStore.items.filter((i) => i.source === 'manual'))
+const mergedWorkByYear = useMergedWork(manualPastWork, computed(() => projectsStore.myProjects))
 
 const showAddModal = ref(false)
 const uploading = ref(false)
@@ -139,7 +93,7 @@ function onProjectCreated(projectId: string) {
   router.push(`/projects/${projectId}`)
 }
 
-async function respondToInvitation(project: import('@/types/project').Project, accept: boolean) {
+async function respondToInvitation(project: Project, accept: boolean) {
   if (accept) {
     await projectsStore.acceptInvitation(project)
     router.push(`/projects/${project.id}`)
@@ -268,11 +222,10 @@ async function confirmLogout() {
                   <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
                     <template v-for="entry in group.items" :key="entry.key">
                       <PortfolioItemCard
-                        v-if="entry.type === 'portfolio'"
+                        v-if="entry.type === 'manual'"
                         :item="entry.item"
                         can-delete
                         @delete="handleDeleteItem(entry.item.id)"
-                        @open-project="(id) => router.push(`/projects/${id}`)"
                       />
                       <ProjectCard
                         v-else
