@@ -17,6 +17,7 @@ const confirmPassword = ref('')
 const errorTitle = ref('')
 const error = ref('')
 const fieldError = ref('')
+const currentError = ref('')
 const loading = ref(false)
 const done = ref(false)
 
@@ -24,6 +25,7 @@ async function onSubmit() {
   errorTitle.value = ''
   error.value = ''
   fieldError.value = ''
+  currentError.value = ''
 
   if (!isPasswordValid(newPassword.value)) {
     fieldError.value = 'New password must be at least 8 characters and include a letter and a number.'
@@ -51,8 +53,14 @@ async function onSubmit() {
     newPassword.value = ''
     confirmPassword.value = ''
   } catch (e) {
+    const code = (e as { code?: string }).code ?? ''
+    // Only the current password is checked here, so say that instead of "email or password".
+    if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+      currentError.value = 'Your current password is incorrect.'
+      return
+    }
     errorTitle.value = "Couldn't update your password"
-    error.value = friendlyAuthError((e as { code?: string }).code ?? '')
+    error.value = friendlyAuthError(code)
   } finally {
     loading.value = false
   }
@@ -73,6 +81,7 @@ async function onSubmit() {
           type="password"
           label="Current password"
           autocomplete="current-password"
+          :error="currentError"
           required
         />
         <BaseInput
