@@ -1029,7 +1029,7 @@ onUnmounted(() => {
       <div class="sm:flex sm:h-full sm:min-h-0 sm:flex-1 sm:flex-col">
       <div class="mb-6 flex flex-shrink-0 items-center justify-between">
         <h2 class="text-lg font-semibold text-ink">Tasks</h2>
-        <BaseButton v-if="isHomeowner" @click="openAddTask">+ Add task</BaseButton>
+        <BaseButton v-if="isHomeowner && project?.status === 'active'" @click="openAddTask">+ Add task</BaseButton>
       </div>
 
       <AlertBanner
