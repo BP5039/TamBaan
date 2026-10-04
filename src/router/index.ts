@@ -52,9 +52,17 @@ const router = createRouter({
       component: () => import('@/views/PublicProfileView.vue'),
     },
     {
+      // Every Firebase email link (password reset AND email verification)
+      // lands here once the console's custom action URL points at it.
+      path: '/auth/action',
+      name: 'auth-action',
+      component: () => import('@/views/AuthActionView.vue'),
+    },
+    {
+      // Kept so reset links sent before the action URL change still work.
       path: '/reset-password',
       name: 'reset-password',
-      component: () => import('@/views/ResetPasswordView.vue'),
+      component: () => import('@/views/AuthActionView.vue'),
     },
     {
       path: '/about',
