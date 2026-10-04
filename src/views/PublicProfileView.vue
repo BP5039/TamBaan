@@ -12,8 +12,9 @@ import StarRating from '@/components/ui/StarRating.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import UserAvatar from '@/components/ui/UserAvatar.vue'
 import InviteToProjectModal from '@/components/projects/InviteToProjectModal.vue'
-import { formatLastSeen } from '@/utils/lastSeen'
-import { activityRingClass } from '@/utils/lastSeen'
+import { activityRingClass, formatLastSeen } from '@/utils/lastSeen'
+import type { PortfolioItem } from '@/types'
+import type { Project } from '@/types/project'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,6 +54,49 @@ const completedProjectsByYear = computed(() => {
     .map(([year, items]) => ({ year, items }))
 })
 
+// Professional's public "Previous work" — same merge as their own dashboard
+// (ProfileView), just restricted to completed projects only (never
+// active/pending, even for the owner previewing their own page) plus manual
+// past work. A completed collaboration shows via the live ProjectCard, not
+// the frozen portfolio snapshot — same card either role sees.
+const manualPastWork = computed(() => portfolioStore.items.filter((i) => i.source === 'manual'))
+type MergedWorkEntry =
+  | { type: 'manual'; key: string; year: number; item: PortfolioItem }
+  | { type: 'project'; key: string; year: number; project: Project }
+
+const mergedWorkByYear = computed(() => {
+  const entries: MergedWorkEntry[] = [
+    ...manualPastWork.value.map((item): MergedWorkEntry => ({
+      type: 'manual',
+      key: `manual-${item.id}`,
+      year: item.year,
+      item,
+    })),
+    ...completedProjects.value.map((project): MergedWorkEntry => ({
+      type: 'project',
+      key: `project-${project.id}`,
+      year: project.plannedStartDate ? new Date(project.plannedStartDate).getFullYear() : new Date().getFullYear(),
+      project,
+    })),
+  ]
+
+  const map = new Map<number, MergedWorkEntry[]>()
+  for (const entry of entries) {
+    if (!map.has(entry.year)) map.set(entry.year, [])
+    map.get(entry.year)!.push(entry)
+  }
+  function lastUpdate(entry: MergedWorkEntry): number {
+    return entry.type === 'manual' ? entry.item.createdAt : entry.project.updatedAt
+  }
+
+  return Array.from(map.entries())
+    .sort((a, b) => b[0] - a[0])
+    .map(([year, items]) => ({
+      year,
+      items: [...items].sort((a, b) => lastUpdate(b) - lastUpdate(a)),
+    }))
+})
+
 function onInviteSent() {
   showInviteModal.value = false
 }
@@ -61,6 +105,7 @@ async function load() {
   await publicProfileStore.loadByUsername(username.value)
   if (publicProfileStore.profile?.role === 'professional') {
     await portfolioStore.fetchItems(publicProfileStore.profile.uid)
+    await projectsStore.fetchMyProjects(publicProfileStore.profile.uid, 'professional')
   } else if (publicProfileStore.profile?.role === 'homeowner') {
     await projectsStore.fetchMyProjects(publicProfileStore.profile.uid, 'homeowner')
   }
@@ -169,16 +214,20 @@ watch(username, load)
 
             <div class="flex-1 pr-1 md:overflow-y-auto">
               <template v-if="isProfessional">
-                <div v-if="portfolioStore.groupedByYear.length">
-                  <div v-for="group in portfolioStore.groupedByYear" :key="group.year" class="mb-6 last:mb-0">
+                <div v-if="mergedWorkByYear.length">
+                  <div v-for="group in mergedWorkByYear" :key="group.year" class="mb-6 last:mb-0">
                     <h3 class="mb-3 text-sm font-semibold text-ink">{{ group.year }}</h3>
                     <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
-                      <PortfolioItemCard
-                        v-for="item in group.items"
-                        :key="item.id"
-                        :item="item"
-                        @open-project="(id) => router.push(`/projects/${id}`)"
-                      />
+                      <template v-for="entry in group.items" :key="entry.key">
+                        <PortfolioItemCard v-if="entry.type === 'manual'" :item="entry.item" />
+                        <ProjectCard
+                          v-else
+                          :project="entry.project"
+                          :unread-count="isOwnProfile ? entry.project.unreadCountContractor : undefined"
+                          class="cursor-pointer"
+                          @click="router.push(`/projects/${entry.project.id}`)"
+                        />
+                      </template>
                     </div>
                   </div>
                 </div>
