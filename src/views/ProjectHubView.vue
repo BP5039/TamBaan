@@ -957,15 +957,15 @@ onUnmounted(() => {
             <div class="text-[11px] text-ink">
               <div class="mb-1 flex items-center justify-between">
                 <span>Work quality</span>
-                <StarRating :rating="project.review.workQuality" :count="0" />
+                <StarRating :rating="project.review.workQuality" :show-count="false" />
               </div>
               <div class="mb-1 flex items-center justify-between">
                 <span>Communication</span>
-                <StarRating :rating="project.review.communication" :count="0" />
+                <StarRating :rating="project.review.communication" :show-count="false" />
               </div>
               <div class="mb-2 flex items-center justify-between">
                 <span>Timeliness</span>
-                <StarRating :rating="project.review.timeliness" :count="0" />
+                <StarRating :rating="project.review.timeliness" :show-count="false" />
               </div>
               <p v-if="project.review.comment" class="text-[11px] italic text-muted">{{ project.review.comment }}</p>
             </div>

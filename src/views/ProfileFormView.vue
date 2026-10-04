@@ -3,6 +3,7 @@ import { reactive, ref, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { THAI_PROVINCES } from '@/constants/provinces'
+import { isValidPhone, sanitizePhoneInput } from '@/utils/phone'
 import type { ProfileFormData } from '@/types'
 import AvatarUpload from '@/components/profile/AvatarUpload.vue'
 import WorkCategorySelect from '@/components/profile/WorkCategorySelect.vue'
@@ -34,15 +35,12 @@ const pendingAvatarFile = ref<File | null>(null)
 const saving = ref(false)
 const saveError = ref('')
 
-// Thai mobile numbers: 10 digits, starting with 0 (dashes/spaces stripped before checking).
-const PHONE_REGEX = /^0\d{9}$/
-
 watchEffect(() => {
   const p = authStore.profile
   if (!p) return
   form.firstName = p.firstName
   form.lastName = p.lastName
-  form.phone = p.phone
+  form.phone = sanitizePhoneInput(p.phone)
   form.username = p.username
   form.lineId = p.lineId
   form.facebookId = p.facebookId
@@ -66,10 +64,9 @@ function validate(): boolean {
   if (!form.firstName.trim()) errors.firstName = 'Please enter your first name.'
   if (!form.lastName.trim()) errors.lastName = 'Please enter your last name.'
 
-  const phoneDigits = form.phone.replace(/\D/g, '')
-  if (!phoneDigits) {
+  if (!form.phone) {
     errors.phone = 'Please enter your phone number.'
-  } else if (!PHONE_REGEX.test(phoneDigits)) {
+  } else if (!isValidPhone(form.phone)) {
     errors.phone = 'Enter a valid 10-digit phone number.'
   }
 
@@ -151,12 +148,14 @@ async function onSubmit() {
       </div>
 
       <BaseInput
-        v-model="form.phone"
+        :model-value="form.phone"
         type="tel"
         label="Phone number"
-        placeholder="08X-XXX-XXXX"
+        placeholder="0812345678"
         :error="errors.phone"
+        :maxlength="10"
         required
+        @update:model-value="(v) => (form.phone = sanitizePhoneInput(v))"
       />
 
       <div>

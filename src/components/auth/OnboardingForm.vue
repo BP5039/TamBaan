@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { THAI_PROVINCES } from '@/constants/provinces'
 import { baseUsernameFrom, slugify } from '@/constants/username'
+import { isValidPhone, sanitizePhoneInput } from '@/utils/phone'
 import type { ProfileFormData, UserRole } from '@/types'
 import AvatarUpload from '@/components/profile/AvatarUpload.vue'
 import WorkCategorySelect from '@/components/profile/WorkCategorySelect.vue'
@@ -55,10 +56,18 @@ function onAvatarInvalid(message: string) {
   saveError.value = message
 }
 
+function onPhoneInput(value: string) {
+  form.phone = sanitizePhoneInput(value)
+}
+
 function validateStep1(): boolean {
   errors.firstName = form.firstName.trim() ? '' : 'Required'
   errors.lastName = form.lastName.trim() ? '' : 'Required'
-  errors.phone = form.phone.trim() ? '' : 'Required'
+  errors.phone = isValidPhone(form.phone)
+    ? ''
+    : form.phone
+      ? 'Enter a valid 10-digit phone number.'
+      : 'Required'
   return !errors.firstName && !errors.lastName && !errors.phone
 }
 
@@ -245,12 +254,14 @@ async function performSave() {
         <BaseInput v-model="form.lastName" label="Last name" :error="errors.lastName" required />
       </div>
       <BaseInput
-        v-model="form.phone"
+        :model-value="form.phone"
         type="tel"
         label="Phone number"
-        placeholder="08X-XXX-XXXX"
+        placeholder="0812345678"
         :error="errors.phone"
+        :maxlength="10"
         required
+        @update:model-value="onPhoneInput"
       />
       <BaseButton full-width @click="goNext">Next</BaseButton>
     </div>

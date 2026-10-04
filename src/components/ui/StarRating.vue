@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 
 const props = withDefaults(
-  defineProps<{ rating: number | null; count?: number; size?: number }>(),
-  { count: 0, size: 13 },
+  defineProps<{ rating: number | null; count?: number; showCount?: boolean; size?: number }>(),
+  { count: 0, showCount: true, size: 13 },
 )
 
 const STAR_PATH =
@@ -52,7 +52,7 @@ const starStates = computed<('full' | 'half' | 'empty')[]>(() => {
           </svg>
         </template>
       </div>
-      <span class="text-xs text-muted">{{ rating.toFixed(1) }} ({{ count }})</span>
+      <span class="text-xs text-muted">{{ rating.toFixed(1) }}<template v-if="showCount"> ({{ count }})</template></span>
     </template>
   </div>
 </template>
