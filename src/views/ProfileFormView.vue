@@ -10,6 +10,7 @@ import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
+import ChangePasswordForm from '@/components/auth/ChangePasswordForm.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -211,6 +212,10 @@ async function onSubmit() {
         <BaseButton type="submit" full-width :loading="saving">Save profile</BaseButton>
       </div>
     </form>
+
+    <div class="mt-8">
+      <ChangePasswordForm />
+    </div>
     </div>
   </div>
 </template>
