@@ -5,7 +5,7 @@ const MESSAGES: Record<string, string> = {
   'auth/wrong-password': 'Incorrect password. Try again.',
   'auth/invalid-credential': 'Incorrect email or password.',
   'auth/email-already-in-use': 'An account already exists with that email.',
-  'auth/weak-password': 'Password should be at least 6 characters.',
+  'auth/weak-password': 'Password must be at least 8 characters and include a letter and a number.',
   'auth/too-many-requests': 'Too many attempts. Wait a moment and try again.',
   'auth/network-request-failed': 'Check your connection and try again.',
 }

@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { fieldAuthError } from '@/utils/authErrors'
+import { isPasswordValid, PASSWORD_HINT } from '@/utils/passwordPolicy'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
@@ -22,6 +23,11 @@ async function onSubmit() {
   fieldErrors.email = undefined
   fieldErrors.password = undefined
   fieldErrors.confirmPassword = undefined
+
+  if (!isPasswordValid(password.value)) {
+    fieldErrors.password = 'Password must be at least 8 characters and include a letter and a number.'
+    return
+  }
 
   if (password.value !== confirmPassword.value) {
     fieldErrors.confirmPassword = 'Invalid confirm password.'
@@ -68,6 +74,7 @@ async function onSubmit() {
         v-model="password"
         type="password"
         label="Password"
+        :hint="PASSWORD_HINT"
         autocomplete="new-password"
         :error="fieldErrors.password"
         required
