@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/firebase/config'
 import { useAuthStore } from '@/stores/auth'
 import { useProjectsStore } from '@/stores/projects'
@@ -621,9 +621,35 @@ const sortedGalleryPhotos = computed(() => {
 
 const galleryAlbums = computed<GalleryAlbum[]>(() => buildGalleryAlbums(galleryPhotos.value, gallerySort.value))
 
+// `photoCount` is a denormalized counter (incremented wherever a photo is
+// added/removed) so list cards can show a badge without fetching every
+// task and progress update for every project. Docs created or edited
+// before that counter existed never got the field, so the badge silently
+// shows nothing for them. This repairs it once per page load — the first
+// participant to open an affected project after this ships fixes it for
+// everyone after that, since it's a real Firestore write, not a local-only
+// patch.
+let photoCountChecked = false
+watch(
+  [() => project.value, () => tasksStore.loading, () => progressStore.loading],
+  async ([p, tasksLoading, progressLoading]) => {
+    if (photoCountChecked || !p || tasksLoading || progressLoading) return
+    photoCountChecked = true
+    const actual = galleryPhotos.value.length
+    if (actual !== (p.photoCount ?? 0)) {
+      try {
+        await updateDoc(doc(db, 'projects', p.id), { photoCount: actual })
+      } catch {
+        // Not a participant, or rules disallow it — leave it stale rather than error.
+      }
+    }
+  },
+)
+
 // ---- Load everything this page needs ----
 
 function load() {
+  photoCountChecked = false
   projectsStore.subscribeToProject(projectId.value)
   tasksStore.subscribeToTasks(projectId.value)
   progressStore.subscribeToUpdates(projectId.value)
