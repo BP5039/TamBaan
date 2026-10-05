@@ -14,10 +14,14 @@ const error = ref('')
 const loading = ref(false)
 const sent = ref(false)
 
+// Firebase won't let this project point its email links at TamBaan
+// (EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED), so the reset happens on Firebase's own
+// page. This URL is where its "Continue" button sends the person afterwards.
+// It must not be /auth/action or /reset-password: those expect a one-time code
+// in the URL and would show "This link has expired" without one.
 function actionCodeSettings() {
   return {
-    url: `${window.location.origin}/reset-password`,
-    handleCodeInApp: true,
+    url: `${window.location.origin}/home`,
   }
 }
 
