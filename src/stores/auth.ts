@@ -23,6 +23,18 @@ import { useNotificationsStore } from '@/stores/notifications'
 import { imageContentType, MAX_IMAGE_SIZE_BYTES } from '@/constants/fileValidation'
 import type { ProfileFormData, UserProfile } from '@/types'
 
+/**
+ * Firebase won't let this project change the link inside its emails
+ * (EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED), so verification links open Firebase's
+ * own page. The continue URL adds a "Continue" button there that brings the
+ * person back to TamBaan, where UnverifiedEmailBanner re-checks the flag on
+ * focus and disappears. /auth/action still handles links that point at
+ * TamBaan directly.
+ */
+function verificationActionSettings() {
+  return { url: `${window.location.origin}/home` }
+}
+
 interface AuthState {
   user: User | null
   profile: UserProfile | null
@@ -89,7 +101,7 @@ export const useAuthStore = defineStore('auth', {
         this.emailVerified = cred.user.emailVerified
         // Fire-and-forget — the account exists either way, and a bounced
         // verification email shouldn't block registration from completing.
-        sendEmailVerification(cred.user).catch((err) =>
+        sendEmailVerification(cred.user, verificationActionSettings()).catch((err) =>
           console.error('Failed to send verification email:', err),
         )
         return cred.user
@@ -132,7 +144,7 @@ export const useAuthStore = defineStore('auth', {
 
     async resendVerificationEmail() {
       if (!auth.currentUser) return
-      await sendEmailVerification(auth.currentUser)
+      await sendEmailVerification(auth.currentUser, verificationActionSettings())
     },
 
     async fetchProfile(uid: string) {
