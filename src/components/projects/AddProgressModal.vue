@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { readExif, formatExif } from '@/utils/exif'
 import { validateImageFile, ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_LABEL, MAX_IMAGE_SIZE_BYTES } from '@/constants/fileValidation'
+import { prepareImageFile } from '@/utils/heic'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
@@ -50,6 +51,12 @@ const description = ref('')
 const validationError = ref('')
 const showConfirm = ref(false)
 
+// A "Can't save this yet" message is about the form as it was on the last
+// submit — once the user edits the description, it no longer applies.
+watch(description, () => {
+  validationError.value = ''
+})
+
 const acceptAttr = ALLOWED_IMAGE_TYPES.join(',')
 
 const selectedTask = computed(() => props.tasks.find((t) => t.id === taskId.value) ?? null)
@@ -71,10 +78,16 @@ async function onFilesChange(e: Event) {
       validationError.value = err
       continue
     }
+    // Read EXIF from the original: converting HEIC to JPEG drops it.
     const exif = await readExif(file)
+    const prepared = await prepareImageFile(file)
+    if (!prepared.file) {
+      validationError.value = prepared.error
+      continue
+    }
     slots.value.push({
-      file,
-      previewUrl: URL.createObjectURL(file),
+      file: prepared.file,
+      previewUrl: URL.createObjectURL(prepared.file),
       exifTimestamp: exif.timestamp,
       exifDevice: exif.device,
       exifText: formatExif(exif),

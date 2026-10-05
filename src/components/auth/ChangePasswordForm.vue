@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth'
 import { useAuthStore } from '@/stores/auth'
 import { friendlyAuthError } from '@/utils/authErrors'
@@ -20,6 +20,13 @@ const fieldError = ref('')
 const currentError = ref('')
 const loading = ref(false)
 const done = ref(false)
+
+watch(currentPassword, () => {
+  currentError.value = ''
+})
+watch([newPassword, confirmPassword], () => {
+  fieldError.value = ''
+})
 
 async function onSubmit() {
   errorTitle.value = ''

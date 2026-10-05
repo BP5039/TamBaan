@@ -89,27 +89,64 @@ function readExifFromJpeg(buffer: ArrayBuffer): ExifData {
 }
 
 /**
- * Reads EXIF timestamp/device from a JPEG file, if present. Returns nulls
- * for non-JPEG images (HEIC, PNG) or photos with stripped metadata — that
- * absence is itself informational, shown honestly rather than hidden.
+ * HEIC keeps its EXIF block inside the file's item data as
+ * "Exif\0\0" followed by a normal TIFF header ("MM\0*" or "II*\0").
+ * Scanning for that pair is simpler than walking the HEIF box tree and is
+ * reliable enough for a date + device line.
+ */
+function readExifFromHeic(buffer: ArrayBuffer): ExifData {
+  const view = new DataView(buffer)
+  for (let i = 0; i < view.byteLength - 10; i++) {
+    if (
+      view.getUint32(i) === 0x45786966 && // "Exif"
+      view.getUint16(i + 4) === 0x0000
+    ) {
+      const tiff = i + 6
+      const byteOrder = view.getUint16(tiff)
+      if (byteOrder === 0x4d4d || byteOrder === 0x4949) {
+        return parseTiff(view, tiff)
+      }
+    }
+  }
+  return { timestamp: null, device: null }
+}
+
+function isHeicFile(file: File): boolean {
+  const type = file.type.toLowerCase()
+  const name = file.name.toLowerCase()
+  return type === 'image/heic' || type === 'image/heif' || name.endsWith('.heic') || name.endsWith('.heif')
+}
+
+/**
+ * Reads EXIF timestamp/device from a JPEG or HEIC file, if present. Returns
+ * nulls for PNGs or photos with stripped metadata (screenshots, photos saved
+ * from chat apps or social media) — that absence is itself informational,
+ * shown honestly rather than hidden.
+ *
+ * Call this on the ORIGINAL file: HEIC photos are converted to JPEG for
+ * display, and the conversion drops the metadata.
  */
 export function readExif(file: File): Promise<ExifData> {
   return new Promise((resolve) => {
-    if (file.type !== 'image/jpeg') {
+    const heic = isHeicFile(file)
+    if (file.type !== 'image/jpeg' && !heic) {
       resolve({ timestamp: null, device: null })
       return
     }
     const reader = new FileReader()
     reader.onload = () => {
       try {
-        resolve(readExifFromJpeg(reader.result as ArrayBuffer))
+        const buffer = reader.result as ArrayBuffer
+        resolve(heic ? readExifFromHeic(buffer) : readExifFromJpeg(buffer))
       } catch (err) {
         console.error('EXIF parse failed:', err)
         resolve({ timestamp: null, device: null })
       }
     }
     reader.onerror = () => resolve({ timestamp: null, device: null })
-    reader.readAsArrayBuffer(file.slice(0, 128 * 1024))
+    // JPEG EXIF sits in the first few KB; in HEIC it can be anywhere, so
+    // read the whole file (it's already capped at 8 MB by validation).
+    reader.readAsArrayBuffer(heic ? file : file.slice(0, 128 * 1024))
   })
 }
 

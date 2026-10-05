@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useTasksStore } from '@/stores/tasks'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import { validateImageFile, ALLOWED_IMAGE_LABEL, MAX_IMAGE_SIZE_BYTES } from '@/constants/fileValidation'
+import { prepareImageFile } from '@/utils/heic'
 import type { ProjectTask } from '@/types/project'
 import type { PortfolioImage } from '@/types'
 
@@ -27,6 +28,12 @@ const description = ref(props.task?.description ?? '')
 const error = ref('')
 const saving = ref(false)
 
+// A "Can't save this yet" message is about the fields as they were on the
+// last submit — once the user edits them, it no longer applies.
+watch([title, description], () => {
+  error.value = ''
+})
+
 const existingImages = ref<PortfolioImage[]>(
   props.task?.referenceImages ? [...props.task.referenceImages] : [],
 )
@@ -41,7 +48,7 @@ function pickFiles() {
   fileInput.value?.click()
 }
 
-function onFilesChange(e: Event) {
+async function onFilesChange(e: Event) {
   const files = Array.from((e.target as HTMLInputElement).files ?? [])
   error.value = ''
 
@@ -55,7 +62,12 @@ function onFilesChange(e: Event) {
       error.value = err
       continue
     }
-    newSlots.value.push({ file, previewUrl: URL.createObjectURL(file) })
+    const prepared = await prepareImageFile(file)
+    if (!prepared.file) {
+      error.value = prepared.error
+      continue
+    }
+    newSlots.value.push({ file: prepared.file, previewUrl: URL.createObjectURL(prepared.file) })
   }
 
   if (fileInput.value) fileInput.value.value = ''

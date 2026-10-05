@@ -119,6 +119,11 @@ async function respond(action: 'accept' | 'decline') {
   if (!project.value) return
   if (action === 'accept') {
     await projectsStore.acceptInvitation(project.value)
+    // Before accepting, the invitee isn't a project member yet, so the
+    // tasks/updates listeners opened on page load were rejected by the
+    // security rules. Reopen them now that the member check passes.
+    tasksStore.subscribeToTasks(projectId.value)
+    progressStore.subscribeToUpdates(projectId.value)
   } else {
     await projectsStore.declineInvitation(project.value)
   }
@@ -187,6 +192,11 @@ const taskActionError = ref('')
 const sendBackTargetId = ref<string | null>(null)
 const sendBackReason = ref('')
 const sendBackError = ref('')
+
+// "Explain what needs fixing." no longer applies once a reason is typed.
+watch(sendBackReason, () => {
+  sendBackError.value = ''
+})
 
 function openUploadFor(taskId: string) {
   uploadTaskId.value = taskId

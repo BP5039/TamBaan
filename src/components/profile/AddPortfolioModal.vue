@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
@@ -13,6 +13,7 @@ import {
   MAX_IMAGE_SIZE_BYTES,
   validateImageFile,
 } from '@/constants/fileValidation'
+import { prepareImageFile } from '@/utils/heic'
 
 defineProps<{
   saving: boolean
@@ -43,6 +44,12 @@ const year = ref(String(new Date().getFullYear()))
 const location = ref('')
 const validationError = ref('')
 
+// A "Can't save this yet" message is about the fields as they were on the
+// last submit — once the user edits them, it no longer applies.
+watch([title, description, year, location], () => {
+  validationError.value = ''
+})
+
 const remainingSlots = computed(() => MAX_IMAGES - slots.value.length)
 const acceptAttr = ALLOWED_IMAGE_TYPES.join(',')
 
@@ -50,7 +57,7 @@ function pickFiles() {
   fileInput.value?.click()
 }
 
-function onFilesChange(e: Event) {
+async function onFilesChange(e: Event) {
   const files = Array.from((e.target as HTMLInputElement).files ?? [])
   validationError.value = ''
 
@@ -64,7 +71,12 @@ function onFilesChange(e: Event) {
       validationError.value = err
       continue
     }
-    slots.value.push({ file, previewUrl: URL.createObjectURL(file) })
+    const prepared = await prepareImageFile(file)
+    if (!prepared.file) {
+      validationError.value = prepared.error
+      continue
+    }
+    slots.value.push({ file: prepared.file, previewUrl: URL.createObjectURL(prepared.file) })
   }
 
   if (fileInput.value) fileInput.value.value = ''

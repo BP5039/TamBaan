@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTextarea from '@/components/ui/BaseTextarea.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
@@ -20,6 +20,11 @@ const communication = ref(0)
 const timeliness = ref(0)
 const comment = ref('')
 const validationError = ref('')
+
+// "Rate all three categories" no longer applies once a rating changes.
+watch([workQuality, communication, timeliness], () => {
+  validationError.value = ''
+})
 
 function submit() {
   validationError.value = ''

@@ -20,7 +20,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { auth, db, storage } from '@/firebase/config'
 import { useNotificationsStore } from '@/stores/notifications'
-import { imageContentType } from '@/constants/fileValidation'
+import { imageContentType, MAX_IMAGE_SIZE_BYTES } from '@/constants/fileValidation'
 import type { ProfileFormData, UserProfile } from '@/types'
 
 interface AuthState {
@@ -159,8 +159,9 @@ export const useAuthStore = defineStore('auth', {
 
     async uploadAvatar(file: File) {
           if (!this.user) throw new Error('Not authenticated')
-          if (file.size > 5 * 1024 * 1024) {
-            throw new Error('Photo must be under 5MB. Try a smaller image or a screenshot instead.')
+          if (file.size > MAX_IMAGE_SIZE_BYTES) {
+            const mb = Math.round(MAX_IMAGE_SIZE_BYTES / (1024 * 1024))
+            throw new Error(`Photo must be under ${mb}MB. Try a smaller image or a screenshot instead.`)
           }
           const path = `avatars/${this.user.uid}/${Date.now()}-${file.name}`
           const storageRef = ref(storage, path)

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { validateImageFile, ALLOWED_IMAGE_LABEL, MAX_IMAGE_SIZE_BYTES } from '@/constants/fileValidation'
+import { prepareImageFile } from '@/utils/heic'
 
 const props = defineProps<{
   currentUrl?: string | null
@@ -20,7 +21,7 @@ function openPicker() {
   fileInput.value?.click()
 }
 
-function onChange(e: Event) {
+async function onChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
 
@@ -31,8 +32,15 @@ function onChange(e: Event) {
     return
   }
 
-  localPreview.value = URL.createObjectURL(file)
-  emit('file-selected', file)
+  const prepared = await prepareImageFile(file)
+  if (!prepared.file) {
+    emit('invalid-file', prepared.error)
+    if (fileInput.value) fileInput.value.value = ''
+    return
+  }
+
+  localPreview.value = URL.createObjectURL(prepared.file)
+  emit('file-selected', prepared.file)
 }
 
 function reset() {
