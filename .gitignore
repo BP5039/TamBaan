@@ -11,4 +11,5 @@ dist-ssr
 .env*
 *.tsbuildinfo
 vite.config.js
-vite.config.d.tsvitest-results.json
+vite.config.d.ts
+vitest-results.json
