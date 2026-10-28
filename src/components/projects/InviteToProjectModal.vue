@@ -5,6 +5,7 @@ import { useProjectsStore } from '@/stores/projects'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import AlertBanner from '@/components/ui/AlertBanner.vue'
 import type { UserProfile } from '@/types'
+import type { Project } from '@/types/project'
 
 const props = defineProps<{ professional: UserProfile }>()
 const emit = defineEmits<{ close: []; sent: [] }>()
@@ -17,13 +18,22 @@ const hasDiscussed = ref(false)
 const error = ref('')
 const sending = ref(false)
 
+// The homeowner's own projects, kept local to the modal. Loading them into
+// projectsStore.myProjects would replace the professional's projects that
+// PublicProfileView is showing underneath ("Previous work").
+const ownProjects = ref<Project[]>([])
+
 const invitableProjects = computed(() =>
-  projectsStore.myProjects.filter((p) => !p.contractorUid && !p.pendingInvitationUid),
+  ownProjects.value.filter((p) => !p.contractorUid && !p.pendingInvitationUid),
 )
 
 onMounted(async () => {
-  if (authStore.user) {
-    await projectsStore.fetchMyProjects(authStore.user.uid, 'homeowner')
+  if (!authStore.user) return
+  try {
+    ownProjects.value = await projectsStore.listProjects(authStore.user.uid, 'homeowner')
+  } catch (err) {
+    console.error('listProjects failed:', err)
+    error.value = "Couldn't load your projects. Please try again."
   }
 })
 

@@ -93,16 +93,23 @@ export const useProjectsStore = defineStore('projects', {
   },
 
   actions: {
+    // Reads a user's projects without touching the store, so a screen can list
+    // someone's projects (e.g. the invite modal) without replacing myProjects,
+    // which the page underneath may be showing for a different user.
+    async listProjects(uid: string, role: 'homeowner' | 'professional'): Promise<Project[]> {
+      const field = role === 'homeowner' ? 'homeownerUid' : 'contractorUid'
+      const q = query(collection(db, 'projects'), where(field, '==', uid))
+      const snap = await getDocs(q)
+      return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as Project)
+        .sort((a, b) => b.createdAt - a.createdAt)
+    },
+
     async fetchMyProjects(uid: string, role: 'homeowner' | 'professional') {
       this.loading = true
       this.error = ''
       try {
-        const field = role === 'homeowner' ? 'homeownerUid' : 'contractorUid'
-        const q = query(collection(db, 'projects'), where(field, '==', uid))
-        const snap = await getDocs(q)
-        this.myProjects = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }) as Project)
-          .sort((a, b) => b.createdAt - a.createdAt)
+        this.myProjects = await this.listProjects(uid, role)
       } catch (err) {
         console.error('fetchMyProjects failed:', err)
         this.error = "Couldn't load projects. Please try again."
